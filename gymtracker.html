@@ -91,6 +91,36 @@ async function syncToGist(data,token){
   await fetch('https://api.github.com/gists/'+gistId,{method:'PATCH',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({files:{'gymtracker.json':{content:content}}})});
 }
 
+/* ── github pdf storage ── */
+var REPO_KEY='gymtracker_pdfrepo';
+function getPdfRepo(){try{return localStorage.getItem(REPO_KEY)||'';}catch(e){return '';}}
+function savePdfRepo(r){try{localStorage.setItem(REPO_KEY,r);}catch(e){}}
+var PDF_FOLDER='gymtracker-pdfs';
+
+async function githubPdfGet(token,repo,id){
+  var res=await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER+'/'+id+'.pdf',{headers:{'Authorization':'Bearer '+token}});
+  if(!res.ok)return null;
+  var d=await res.json();
+  return d;
+}
+async function uploadPdfGithub(token,repo,id,b64){
+  var existing=await githubPdfGet(token,repo,id);
+  var body={message:'Add report PDF',content:b64};
+  if(existing&&existing.sha)body.sha=existing.sha;
+  var res=await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER+'/'+id+'.pdf',{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  var d=await res.json();
+  return (d.content&&d.content.sha)||null;
+}
+async function fetchPdfGithub(token,repo,id){
+  var d=await githubPdfGet(token,repo,id);
+  if(!d||!d.content)return null;
+  return d.content.replace(/\n/g,'');
+}
+async function deletePdfGithub(token,repo,id,sha){
+  if(!sha)return;
+  await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER+'/'+id+'.pdf',{method:'DELETE',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({message:'Delete report PDF',sha:sha})});
+}
+
 function uid(){return Math.random().toString(36).slice(2,8);}
 function fmtD(d){return new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'short'});}
 function fmtHM(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
@@ -429,7 +459,7 @@ function ProfileSetup(p){
 function Settings(p){
   var profile=p.profile,onProfile=p.onProfile,go=p.go;
   var _1=useState(loadTheme().id);var themeId=_1[0];var setThemeId=_1[1];
-  var _2=useState(Object.assign({token:getToken(),gkey:getGKey()},profile||{nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio'}));
+  var _2=useState(Object.assign({token:getToken(),gkey:getGKey(),pdfrepo:getPdfRepo()},profile||{nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio'}));
   var form=_2[0];var setForm=_2[1];
   function set(k,v){setForm(function(prev){var u=Object.assign({},prev);u[k]=v;return u;});}
   function pickTheme(t){applyTheme(t);setThemeId(t.id);}
@@ -452,11 +482,20 @@ function Settings(p){
     h(Lbl,null,'Sincronizzazione GitHub'),
     h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
       h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Personal Access Token'),
-      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Crea un token con scope "gist" su github.com/settings/tokens → il tuo Gist viene creato automaticamente'),
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Crea un token con scope "gist" + "repo" su github.com/settings/tokens → il tuo Gist viene creato automaticamente'),
       h('input',{type:'password',value:form.token||'',onChange:function(e){set('token',e.target.value);},placeholder:'ghp_...',style:Object.assign({},inp,{marginBottom:0,fontFamily:"'Roboto Mono',monospace",fontSize:13})}),
       (form.token||getToken())&&h('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:6}},
         h('div',{style:{width:7,height:7,borderRadius:'50%',background:'#22C55E'}}),
         h('span',{style:{fontSize:11,color:MUTED}},'Token configurato — i dati si sincronizzano automaticamente')
+      )
+    ),
+    h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
+      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Repository PDF'),
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'I PDF dei report vengono salvati nella cartella "gymtracker-pdfs/" del tuo repository. Crea prima il repo su github.com (può essere privato).'),
+      h('input',{type:'text',value:form.pdfrepo||'',onChange:function(e){set('pdfrepo',e.target.value);},placeholder:'username/nome-repository',style:Object.assign({},inp,{marginBottom:0,fontFamily:"'Roboto Mono',monospace",fontSize:13})}),
+      (form.pdfrepo||getPdfRepo())&&h('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:6}},
+        h('div',{style:{width:7,height:7,borderRadius:'50%',background:'#22C55E'}}),
+        h('span',{style:{fontSize:11,color:MUTED}},'Repository configurato ✓')
       )
     ),
     h('div',{style:{height:1,background:BORD,marginBottom:20}}),
@@ -495,7 +534,7 @@ function Settings(p){
         return h('button',{key:v,onClick:function(){set('livello',v);},style:{padding:'7px 12px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer'}},v);
       })
     ),
-    h(Btn,{full:true,onClick:function(){if(form.token)saveToken(form.token);if(form.gkey)saveGKey(form.gkey);saveProfile(form);onProfile(form);go('home');}},'Salva')
+    h(Btn,{full:true,onClick:function(){if(form.token)saveToken(form.token);if(form.gkey)saveGKey(form.gkey);if(form.pdfrepo!==undefined)savePdfRepo(form.pdfrepo.trim());saveProfile(form);onProfile(form);go('home');}},'Salva')
   );
 }
 
@@ -1589,6 +1628,8 @@ function CorpoNutri(p){
   var _pendDate=useState('');var pendDate=_pendDate[0];var setPendDate=_pendDate[1];
   var _pendLabel=useState('');var pendLabel=_pendLabel[0];var setPendLabel=_pendLabel[1];
   var _pendMet=useState({});var pendingMetrics=_pendMet[0];var setPendingMetrics=_pendMet[1];
+  var _pdfUp=useState(null);var pdfUploading=_pdfUp[0];var setPdfUploading=_pdfUp[1];
+  var _pdfLoad=useState(null);var pdfLoadingId=_pdfLoad[0];var setPdfLoadingId=_pdfLoad[1];
   var BC_FIELDS={peso:'Peso (kg)',massaMagra:'Massa Magra (kg)',massaGrassa:'Massa Grassa (kg)',percGrasso:'% Grasso',acquaCorporea:'Acqua (L)',metabolismoBasale:'BMR (kcal)',BMI:'BMI',massaOssea:'Massa Ossea (kg)',muscolo:'Muscolo (kg)'};
   var NUT_FIELDS={calorie:'Calorie (kcal)',proteine:'Proteine (g)',carboidrati:'Carboidrati (g)',grassi:'Grassi (g)',fibre:'Fibre (g)',acqua:'Acqua (L)'};
   var BC_EMPTY={peso:null,massaMagra:null,massaGrassa:null,percGrasso:null,acquaCorporea:null,metabolismoBasale:null,BMI:null,massaOssea:null,muscolo:null};
@@ -1604,6 +1645,7 @@ function CorpoNutri(p){
   var m=latest&&latest.analysis&&latest.analysis.metrics||{};
 
   function persist(newData){setData(newData);saveCorpo(newData);}
+  function updateReport(id,patch){setData(function(prev){var u={reports:(prev.reports||[]).map(function(r){return r.id===id?Object.assign({},r,patch):r;})};saveCorpo(u);return u;});}
   function triggerUpload(type){pendingType.current=type;if(fileRef.current)fileRef.current.click();}
 
   function fmtM(v,dec){if(v===null||v===undefined||v==='')return '—';var n=parseFloat(v);return isNaN(n)?String(v):(dec?n.toFixed(dec):String(Math.round(n)));}
@@ -1614,12 +1656,26 @@ function CorpoNutri(p){
       reportDate:pendDate||new Date().toISOString().slice(0,10),
       label:pendLabel.trim()||undefined,
       analysis:Object.assign({},pendingReport.analysis,{metrics:pendingMetrics}),
-      hasPdf:!!pendingPdfRef.current
+      hasPdf:!!pendingPdfRef.current,
+      pdfStorage:'local'
     });
     var existing=data.reports||[];
     persist({reports:existing.concat([finalReport])});
-    if(pendingPdfRef.current){savePdfLocal(finalReport.id,pendingPdfRef.current);pendingPdfRef.current=null;}
+    var b64=pendingPdfRef.current;
+    pendingPdfRef.current=null;
     setPendingReport(null);setPendDate('');setPendLabel('');setPendingMetrics({});
+    if(!b64||!finalReport.hasPdf)return;
+    var token=getToken();var repo=getPdfRepo();
+    if(token&&repo){
+      setPdfUploading(finalReport.id);
+      uploadPdfGithub(token,repo,finalReport.id,b64).then(function(sha){
+        if(sha){updateReport(finalReport.id,{pdfStorage:'github',pdfGithubSha:sha,pdfGithubRepo:repo});}
+        else{savePdfLocal(finalReport.id,b64);}
+        setPdfUploading(null);
+      }).catch(function(){savePdfLocal(finalReport.id,b64);setPdfUploading(null);});
+    } else {
+      savePdfLocal(finalReport.id,b64);
+    }
   }
 
   function onFile(e){
@@ -1643,7 +1699,7 @@ function CorpoNutri(p){
         b64=btoa(binary);
       }
       var sys=type==='body_comp'
-        ?'Sei un esperto di composizione corporea. Analizza il report PDF (InBody, DEXA, BIA, Bod Pod o altro) leggendo OGNI pagina incluse note, appendici e tabelle secondarie. NON inventare valori: se assente lascia null. Campi da estrarre:\n- peso: peso corporeo totale kg (peso/weight/body weight/Wt/massa totale)\n- massaMagra: massa libera da grasso kg (FFM/LBM/lean body mass/lean mass/massa magra/fat-free mass — NON confondere con muscolo)\n- massaGrassa: massa grassa kg (FM/fat mass/massa grassa/body fat mass)\n- percGrasso: % grasso corporeo (PBF/% BF/body fat%/% grasso/FM%); se assente calcolala: (massaGrassa/peso)*100 arrotondato a 1 decimale\n- acquaCorporea: acqua corporea totale litri (TBW/total body water/acqua corporea/ICW+ECW)\n- metabolismoBasale: metabolismo basale kcal/die (BMR/RMR/metabolismo basale/basal metabolic rate; se in kJ dividi per 4.184)\n- BMI: indice massa corporea (BMI/body mass index/IMC)\n- massaOssea: massa ossea kg (bone mass/massa ossea/BMC/bone mineral content/ossea/minerals — cerca anche in note e tabelle secondarie)\n- muscolo: muscolo scheletrico kg (SMM/skeletal muscle mass/muscolo scheletrico/BCM/lean muscle/appendicular lean mass)\nHighlights: valori fuori range, note cliniche, tendenze. Sommario: 1-2 frasi sullo stato corporeo.\nRispondi SOLO JSON valido, zero markdown:\n{"tipo":"body_comp","data_report":"YYYY-MM-DD","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
+        ?'Sei un esperto di composizione corporea. Analizza il report PDF (InBody, DEXA, BIA, Bod Pod o altro) leggendo OGNI pagina incluse note, appendici e tabelle secondarie. NON inventare valori: se assente lascia null. Campi da estrarre:\n- peso: peso corporeo totale kg (peso/weight/body weight/Wt/massa totale)\n- massaMagra: massa libera da grasso kg (FFM/LBM/lean body mass/lean mass/massa magra/fat-free mass — NON confondere con muscolo)\n- massaGrassa: massa grassa kg (FM/fat mass/massa grassa/body fat mass)\n- percGrasso: % grasso corporeo (PBF/% BF/body fat%/% grasso/FM%); se assente calcolala: (massaGrassa/peso)*100 arrotondato a 1 decimale\n- acquaCorporea: acqua corporea totale litri (TBW/total body water/acqua corporea/ICW+ECW)\n- metabolismoBasale: metabolismo basale kcal/die (BMR/RMR/metabolismo basale/basal metabolic rate; se in kJ dividi per 4.184)\n- BMI: indice massa corporea (BMI/body mass index/IMC)\n- massaOssea: massa ossea / contenuto minerale osseo in kg. ATTENZIONE: negli InBody questo campo si chiama esattamente "Mineral" ed è la quarta voce del breakdown corporeo (Body Water + Protein + Mineral + Body Fat = Weight). Cerca anche: bone mass, massa ossea, BMC, bone mineral content, bone mineral mass, ossea, minerals, contenuto minerale. Di solito è un valore piccolo tra 2 e 5 kg. Cerca in TUTTE le pagine.\n- muscolo: massa muscolare scheletrica kg (SMM, skeletal muscle mass, muscolo scheletrico, BCM, lean muscle, appendicular lean mass)\nHighlights: valori fuori range, note cliniche, tendenze importanti. Sommario: 1-2 frasi sullo stato di composizione corporea.\nRispondi SOLO JSON valido, zero testo extra, zero markdown:\n{"tipo":"body_comp","data_report":"YYYY-MM-DD","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
         :'Sei un nutrizionista esperto. Analizza il PDF leggendo OGNI pagina. Il documento può essere un piano alimentare strutturato, un diario o un referto. NON inventare valori: se assente lascia null.\nSe PIANO ALIMENTARE: cerca la tabella riepilogativa dei macro totali giornalieri; se assente somma tutti i pasti del giorno tipo.\nSe DIARIO: calcola la media giornaliera.\nCampi:\n- calorie: kcal totali/die (calorie/kcal/energia/energy/fabbisogno)\n- proteine: g proteine/die (proteine/protein/P/prot)\n- carboidrati: g carboidrati/die (carboidrati/carbo/CHO/glucidi/C)\n- grassi: g grassi/die (grassi/lipidi/fat/G/lipids)\n- fibre: g fibre/die (fibre/fiber/dietary fiber)\n- acqua: litri acqua/die consigliati (acqua/water/idratazione)\ndata_report: data piano/referto YYYY-MM-DD. Highlights: note nutrizionista, pasti liberi, variazioni weekend, integratori. Sommario: 1-2 frasi.\nRispondi SOLO JSON valido, zero markdown:\n{"tipo":"nutrition","data_report":"YYYY-MM-DD","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
       fetchGeminiWithRetry('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
         method:'POST',headers:{'Content-Type':'application/json'},
@@ -1653,17 +1709,34 @@ function CorpoNutri(p){
         var txt=result.candidates&&result.candidates[0]&&result.candidates[0].content&&result.candidates[0].content.parts[0]&&result.candidates[0].content.parts[0].text||'';
         var clean=txt.replace(/```json[\s\S]*?```|```[\s\S]*?```|```json|```/g,'').trim();
         var parsed=JSON.parse(clean);
+        /* ── helper: estrae testo da qualsiasi valore ── */
+        function extractStr(v){
+          if(v===null||v===undefined)return '';
+          if(typeof v==='string')return v.trim();
+          if(typeof v==='number')return String(v);
+          if(typeof v==='object'){
+            /* prova le chiavi più comuni usate da Gemini */
+            var keys=['text','content','value','description','highlight','evidence','note','item','message','str','label'];
+            for(var ki=0;ki<keys.length;ki++){if(typeof v[keys[ki]]==='string'&&v[keys[ki]].trim())return v[keys[ki]].trim();}
+            /* fallback: primo valore stringa trovato */
+            var vals=Object.values(v);
+            for(var vi=0;vi<vals.length;vi++){if(typeof vals[vi]==='string'&&vals[vi].trim())return vals[vi].trim();}
+          }
+          return '';
+        }
         /* ── sanitize: ogni campo metriche → numero o null ── */
         var rawM=parsed.metriche||{};
         var sanitizedM={};
-        Object.keys(rawM).forEach(function(k){var v=rawM[k];sanitizedM[k]=(v===null||v===undefined)?null:(typeof v==='object'?null:parseFloat(v)||null);});
+        Object.keys(rawM).forEach(function(k){var v=rawM[k];sanitizedM[k]=(v===null||v===undefined)?null:(typeof v==='object'?null:(isNaN(parseFloat(v))?null:parseFloat(v)));});
         /* ── sanitize highlights → array di stringhe ── */
-        var rawH=parsed.highlights||[];
-        var sanitizedH=Array.isArray(rawH)?rawH.map(function(h){return typeof h==='string'?h:(h&&h.text?String(h.text):JSON.stringify(h));}).filter(Boolean):[];
+        var rawH=parsed.highlights;
+        var sanitizedH=[];
+        if(typeof rawH==='string'&&rawH.trim()){sanitizedH=[rawH.trim()];}
+        else if(Array.isArray(rawH)){sanitizedH=rawH.map(extractStr).filter(Boolean);}
         /* ── sanitize sommario → stringa ── */
-        var sommario=typeof parsed.sommario==='string'?parsed.sommario:(parsed.sommario?JSON.stringify(parsed.sommario):'');
+        var sommario=extractStr(parsed.sommario);
         /* ── sanitize data ── */
-        var extracted=typeof parsed.data_report==='string'?parsed.data_report:'';
+        var extracted=typeof parsed.data_report==='string'?parsed.data_report.trim():'';
         var emptyFields=type==='body_comp'?BC_EMPTY:NUT_EMPTY;
         var mergedMetrics=Object.assign({},emptyFields,sanitizedM);
         var draft={id:uid(),date:new Date().toISOString(),reportDate:extracted||new Date().toISOString().slice(0,10),type:type,filename:file.name,analysis:{sommario:sommario,metrics:mergedMetrics,highlights:sanitizedH},hasPdf:true};
@@ -1845,7 +1918,8 @@ function CorpoNutri(p){
         latest.analysis.highlights&&latest.analysis.highlights.length>0&&h('div',{style:{background:SURF2,borderRadius:12,padding:'12px 14px',marginBottom:12}},
           h(Lbl,null,'Evidenze chiave'),
           latest.analysis.highlights.map(function(hl,i){
-            var hlStr=typeof hl==='string'?hl:(hl&&hl.text?String(hl.text):JSON.stringify(hl));
+            var hlStr=typeof hl==='string'?hl.trim():(function(){if(!hl)return '';var keys=['text','content','value','description','highlight','evidence','note','item','message'];for(var ki=0;ki<keys.length;ki++){if(typeof hl[keys[ki]]==='string'&&hl[keys[ki]].trim())return hl[keys[ki]].trim();}var v=Object.values(hl).find(function(x){return typeof x==='string'&&x.trim();});return v?v.trim():'';})();
+            if(!hlStr)return null;
             return h('div',{key:i,style:{display:'flex',gap:8,marginBottom:i<latest.analysis.highlights.length-1?6:0,alignItems:'flex-start'}},
               h('span',{style:{color:ACC,flexShrink:0,fontSize:13}},'·'),
               h('div',{style:{fontSize:12,lineHeight:1.6}},hlStr)
@@ -1855,7 +1929,7 @@ function CorpoNutri(p){
         /* Summary */
         latest.analysis.sommario&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:'12px 14px',marginBottom:16}},
           h(Lbl,null,'Sintesi'),
-          h('div',{style:{fontSize:13,lineHeight:1.7}},typeof latest.analysis.sommario==='string'?latest.analysis.sommario:JSON.stringify(latest.analysis.sommario))
+          h('div',{style:{fontSize:13,lineHeight:1.7}},(function(){var s=latest.analysis.sommario;if(typeof s==='string')return s;if(s&&typeof s==='object'){var keys=['text','content','value','description'];for(var ki=0;ki<keys.length;ki++){if(typeof s[keys[ki]]==='string')return s[keys[ki]];}return Object.values(s).find(function(x){return typeof x==='string';})||'';}return '';})())
         )
       ),
       /* ─ Chat ─ */
@@ -1892,18 +1966,53 @@ function CorpoNutri(p){
       /* ─ All reports list ─ */
       reports.length>0&&h('div',null,
         h(Lbl,null,'Report caricati ('+reports.length+')'),
+        pdfUploading&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:'8px 12px',marginBottom:10,display:'flex',alignItems:'center',gap:8}},
+          h('div',{style:{width:6,height:6,borderRadius:'50%',background:ACC}}),
+          h('span',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'Upload PDF su GitHub in corso…')
+        ),
         reports.map(function(rep){
           var tc=TYPE_COLOR[rep.type]||ACC;
+          var isGithub=rep.pdfStorage==='github';
+          var isLoadingThis=pdfLoadingId===rep.id;
+          function openPdf(){
+            if(isGithub){
+              var token=getToken();var repo=rep.pdfGithubRepo||getPdfRepo();
+              if(!token||!repo){alert('Configura GitHub nelle Impostazioni per aprire questo PDF.');return;}
+              setPdfLoadingId(rep.id);
+              fetchPdfGithub(token,repo,rep.id).then(function(b64){
+                if(!b64){alert('PDF non trovato su GitHub.');setPdfLoadingId(null);return;}
+                var blob=b64ToBlob(b64);var url=URL.createObjectURL(blob);
+                setViewingPdf(url);setPdfLoadingId(null);
+              }).catch(function(){alert('Errore nel caricamento del PDF da GitHub.');setPdfLoadingId(null);});
+            } else {
+              var b64=loadPdfLocal(rep.id);
+              if(!b64){alert('PDF non trovato. Se hai cambiato dispositivo o browser, il file non è più disponibile localmente. Configura un repository GitHub nelle Impostazioni per non perderli.');return;}
+              var blob=b64ToBlob(b64);var url=URL.createObjectURL(blob);setViewingPdf(url);
+            }
+          }
+          function deletePdf(){
+            if(!confirm('Eliminare questo report?'))return;
+            if(isGithub){
+              var token=getToken();var repo=rep.pdfGithubRepo||getPdfRepo();
+              if(token&&repo&&rep.pdfGithubSha){deletePdfGithub(token,repo,rep.id,rep.pdfGithubSha).catch(function(){});}
+            } else {
+              deletePdfLocal(rep.id);
+            }
+            persist({reports:(data.reports||[]).filter(function(x){return x.id!==rep.id;})});
+          }
           return h(Card,{key:rep.id},
             h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
               h('div',{style:{flex:1,minWidth:0}},
                 h('div',{style:{fontSize:12,fontWeight:500,marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},rep.filename),
-                h('div',{style:{fontSize:11,color:MUTED}},rep.reportDate)
+                h('div',{style:{display:'flex',alignItems:'center',gap:6,marginTop:2}},
+                  h('div',{style:{fontSize:11,color:MUTED}},rep.reportDate),
+                  isGithub&&h('span',{style:{fontSize:9,color:'#22C55E',background:'#22C55E18',padding:'1px 6px',borderRadius:10,border:'1px solid #22C55E44',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'GitHub')
+                )
               ),
               h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0,marginLeft:8}},
                 h('span',{style:{fontSize:9,color:tc,background:tc+'18',padding:'2px 8px',borderRadius:20,border:'1px solid '+tc+'44',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},TYPE_LABEL[rep.type]||rep.type),
-                rep.hasPdf&&h('button',{onClick:function(){var b64=loadPdfLocal(rep.id);if(!b64){alert('PDF non trovato — potrebbe essere stato rimosso dalla memoria del dispositivo.');return;}var blob=b64ToBlob(b64);var url=URL.createObjectURL(blob);setViewingPdf(url);},style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'📄 PDF'),
-                h('button',{onClick:function(){if(confirm('Eliminare questo report?')){deletePdfLocal(rep.id);persist({reports:(data.reports||[]).filter(function(x){return x.id!==rep.id;})});}},style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'trash',sz:14,c:'#EF4444'}))
+                rep.hasPdf&&h('button',{onClick:openPdf,disabled:isLoadingThis,style:{background:isGithub?'#22C55E18':ACC5,border:'1px solid '+(isGithub?'#22C55E44':ACC3),borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:10,color:isGithub?'#22C55E':ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,opacity:isLoadingThis?0.5:1}},isLoadingThis?'…':('📄 '+(isGithub?'GitHub':'PDF'))),
+                h('button',{onClick:deletePdf,style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'trash',sz:14,c:'#EF4444'}))
               )
             )
           );
