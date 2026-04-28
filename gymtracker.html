@@ -45,11 +45,11 @@ function saveProfile(p){try{localStorage.setItem(PK,JSON.stringify(p));}catch(e)
 function stLoad(){try{return JSON.parse(localStorage.getItem(SK))||null;}catch(e){return null;}}
 function stSave(d){try{localStorage.setItem(SK,JSON.stringify(d));}catch(e){}}
 /* ── github gist sync ── */
-var GID_KEY='gymtracker_gist_id', TOK_KEY='gymtracker_token', AKEY_KEY='gymtracker_akey';
+var GID_KEY='gymtracker_gist_id', TOK_KEY='gymtracker_token', GKEY_KEY='gymtracker_gkey';
 function getToken(){try{return localStorage.getItem(TOK_KEY)||'';}catch(e){return '';}}
 function saveToken(t){try{localStorage.setItem(TOK_KEY,t);}catch(e){}}
-function getAKey(){try{return localStorage.getItem(AKEY_KEY)||'';}catch(e){return ''}}
-function saveAKey(k){try{localStorage.setItem(AKEY_KEY,k);}catch(e){}}
+function getGKey(){try{return localStorage.getItem(GKEY_KEY)||'';}catch(e){return ''}}
+function saveGKey(k){try{localStorage.setItem(GKEY_KEY,k);}catch(e){}}
 function getGistId(){try{return localStorage.getItem(GID_KEY)||'';}catch(e){return '';}}
 function saveGistId(id){try{localStorage.setItem(GID_KEY,id);}catch(e){}}
 
@@ -400,7 +400,7 @@ function ProfileSetup(p){
 function Settings(p){
   var profile=p.profile,onProfile=p.onProfile,go=p.go;
   var _1=useState(loadTheme().id);var themeId=_1[0];var setThemeId=_1[1];
-  var _2=useState(Object.assign({token:getToken(),akey:getAKey()},profile||{nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio'}));
+  var _2=useState(Object.assign({token:getToken(),gkey:getGKey()},profile||{nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio'}));
   var form=_2[0];var setForm=_2[1];
   function set(k,v){setForm(function(prev){var u=Object.assign({},prev);u[k]=v;return u;});}
   function pickTheme(t){applyTheme(t);setThemeId(t.id);}
@@ -431,14 +431,14 @@ function Settings(p){
       )
     ),
     h('div',{style:{height:1,background:BORD,marginBottom:20}}),
-    h(Lbl,null,'AI – Anthropic API Key'),
+    h(Lbl,null,'AI – Gemini API Key'),
     h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
-      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'API Key personale'),
-      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Necessaria per analisi PDF in Corpo & Nutrizione. Creala su platform.anthropic.com/api-keys'),
-      h('input',{type:'password',value:form.akey||'',onChange:function(e){set('akey',e.target.value);},placeholder:'sk-ant-...',style:Object.assign({},inp,{marginBottom:0,fontFamily:"'Roboto Mono',monospace",fontSize:13})}),
-      (form.akey||getAKey())&&h('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:6}},
+      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Gemini 1.5 Flash – Gratuito'),
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Usata per analisi PDF in Corpo & Nutrizione. Crea la chiave gratis su aistudio.google.com/apikey'),
+      h('input',{type:'password',value:form.gkey||'',onChange:function(e){set('gkey',e.target.value);},placeholder:'AIza...',style:Object.assign({},inp,{marginBottom:0,fontFamily:"'Roboto Mono',monospace",fontSize:13})}),
+      (form.gkey||getGKey())&&h('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:6}},
         h('div',{style:{width:7,height:7,borderRadius:'50%',background:'#22C55E'}}),
-        h('span',{style:{fontSize:11,color:MUTED}},'API key configurata')
+        h('span',{style:{fontSize:11,color:MUTED}},'API key Gemini configurata ✓')
       )
     ),
     h('div',{style:{height:1,background:BORD,marginBottom:20}}),
@@ -466,7 +466,7 @@ function Settings(p){
         return h('button',{key:v,onClick:function(){set('livello',v);},style:{padding:'7px 12px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer'}},v);
       })
     ),
-    h(Btn,{full:true,onClick:function(){if(form.token)saveToken(form.token);if(form.akey)saveAKey(form.akey);saveProfile(form);onProfile(form);go('home');}},'Salva')
+    h(Btn,{full:true,onClick:function(){if(form.token)saveToken(form.token);if(form.gkey)saveGKey(form.gkey);saveProfile(form);onProfile(form);go('home');}},'Salva')
   );
 }
 
@@ -1409,14 +1409,12 @@ function CorpoNutri(p){
       var sys=type==='body_comp'
         ?'Sei un esperto di composizione corporea. Estrai tutti i valori numerici dal report. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"body_comp","data_report":"YYYY-MM-DD o null","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
         :'Sei un nutrizionista esperto. Estrai tutte le informazioni nutrizionali. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"nutrition","data_report":"YYYY-MM-DD o null","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
-      fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',headers:{'Content-Type':'application/json','x-api-key':getAKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:sys,messages:[{role:'user',content:[
-          {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
-          {type:'text',text:'Analizza e restituisci i dati nel formato JSON richiesto.'}
-        ]}]})
+      fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+getGKey(),{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({system_instruction:{parts:[{text:sys}]},contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:b64}},{text:'Analizza e restituisci i dati nel formato JSON richiesto.'}]}]})
       }).then(function(resp){return resp.json();}).then(function(result){
-        var txt=(result.content||[]).filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join('');
+        if(result.error){throw new Error(result.error.message||'Gemini error');}
+        var txt=result.candidates&&result.candidates[0]&&result.candidates[0].content&&result.candidates[0].content.parts[0]&&result.candidates[0].content.parts[0].text||'';
         var clean=txt.replace(/```json|```/g,'').trim();
         var parsed=JSON.parse(clean);
         var extracted=parsed.data_report||'';
@@ -1447,14 +1445,14 @@ function CorpoNutri(p){
       if(rep.analysis.highlights&&rep.analysis.highlights.length)ctx+='Note: '+rep.analysis.highlights.join('; ')+'\n';
     });
     if(sessions.length>0)ctx+='Sessioni di allenamento registrate: '+sessions.length+' totali\n';
-    fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json','x-api-key':getAKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
-        system:'Sei un assistente esperto di composizione corporea e nutrizione sportiva. Rispondi sempre in italiano, in modo pratico e personalizzato. Hai accesso ai seguenti dati:\n'+ctx+'Se mancano dati per rispondere con precisione, dillo esplicitamente.',
-        messages:newMsgs.map(function(x){return{role:x.role,content:x.content};})
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+getGKey(),{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({system_instruction:{parts:[{text:'Sei un assistente esperto di composizione corporea e nutrizione sportiva. Rispondi sempre in italiano, in modo pratico e personalizzato. Hai accesso ai seguenti dati:\n'+ctx+'Se mancano dati per rispondere con precisione, dillo esplicitamente.'}]},
+        contents:newMsgs.map(function(x){return{role:x.role==='assistant'?'model':'user',parts:[{text:x.content}]};})
       })
     }).then(function(resp){return resp.json();}).then(function(result){
-      var aiText=(result.content||[]).filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join('');
+      if(result.error){throw new Error(result.error.message||'Gemini error');}
+      var aiText=result.candidates&&result.candidates[0]&&result.candidates[0].content&&result.candidates[0].content.parts[0]&&result.candidates[0].content.parts[0].text||'Errore nella risposta. Riprova.';
       setMsgs(function(prev){return prev.concat([{role:'assistant',content:aiText}]);});
       setLoading(false);
     }).catch(function(){
