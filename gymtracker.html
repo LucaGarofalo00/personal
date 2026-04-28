@@ -126,7 +126,33 @@ function fmtEsCard(ex){var t=ex.tipo||'standard';if(t==='riscaldamento')return (
 function ton(es){return es.reduce(function(t,e){return t+(e.serie||[]).filter(function(s){return s.ok;}).reduce(function(a,s){return a+s.peso*s.reps;},0);},0);}
 function rm1(p,r){return r<=1?p:Math.round(p*(1+r/30));}
 function parseReps(r){var s=String(r);return s.indexOf('-')>=0?parseInt(s,10):(parseInt(s,10)||10);}
-function estimateTime(bl){var m=10;bl.es.forEach(function(ex){m+=ex.serie*(0.75+ex.rec/60)+1;});return Math.ceil(m/5)*5;}
+function estimateTime(bl){var m=10;bl.es.forEach(function(ex){if(ex.tipo==='riscaldamento'){m+=(ex.durata||10)+1;}else{var s=typeof ex.serie==='number'?ex.serie:(ex.sets||3);var r=ex.rec||ex.recSet||90;m+=s*(0.75+r/60)+1;}});return Math.ceil(m/5)*5;}
+/* ── gemini retry helper ── */
+function fetchGeminiWithRetry(url,options,retries){
+  if(retries===undefined)retries=3;
+  return fetch(url,options).then(function(resp){return resp.json();}).then(function(result){
+    if(result.error){
+      var msg=result.error.message||'';
+      var retryable=msg.indexOf('high demand')>=0||msg.indexOf('overloaded')>=0||msg.indexOf('RESOURCE_EXHAUSTED')>=0||result.error.code===429||result.error.code===503;
+      if(retryable&&retries>0){
+        return new Promise(function(resolve,reject){
+          setTimeout(function(){fetchGeminiWithRetry(url,options,retries-1).then(resolve).catch(reject);},3500);
+        });
+      }
+      throw new Error(msg||'Gemini error');
+    }
+    return result;
+  });
+}
+/* ── pdf blob helper ── */
+function b64ToBlob(b64){
+  var binary=atob(b64);var bytes=new Uint8Array(binary.length);
+  for(var i=0;i<binary.length;i++){bytes[i]=binary.charCodeAt(i);}
+  return new Blob([bytes],{type:'application/pdf'});
+}
+function savePdfLocal(id,b64){try{localStorage.setItem('pdfdata_'+id,b64);}catch(e){}}
+function loadPdfLocal(id){try{return localStorage.getItem('pdfdata_'+id)||null;}catch(e){return null;}}
+function deletePdfLocal(id){try{localStorage.removeItem('pdfdata_'+id);}catch(e){}}
 
 /* ── SVG icons ── */
 function Ico(p){
@@ -1289,27 +1315,68 @@ function EsDetail(p){
 /* ── scheda v ── */
 function SchedaV(p){
   var schede=p.schede,setSch=p.setSch,go=p.go;
-  function importPreset(){if(confirm('Importare la scheda di Fernando Buttari (Mar/Mag 2026) con tutti gli esercizi e le progressioni già configurati?')){setSch(schede.map(function(x){return Object.assign({},x,{attiva:false});}).concat([Object.assign({},SCHEDA_PRESET,{id:uid()})]));}};
+  var _1=useState(false);var importing=_1[0];var setImporting=_1[1];
+  var _2=useState('');var importErr=_2[0];var setImportErr=_2[1];
+  var fileRef=useRef(null);
+  function importPreset(){if(confirm('Importare la scheda di Fernando Buttari (Mar/Mag 2026) con tutti gli esercizi e le progressioni già configurati?')){setSch(schede.map(function(x){return Object.assign({},x,{attiva:false});}).concat([Object.assign({},SCHEDA_PRESET,{id:uid()})]));}}
+  function onPdfFile(e){
+    var file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    e.target.value='';
+    setImporting(true);setImportErr('');
+    var r=new FileReader();
+    r.onerror=function(){setImportErr('Lettura file fallita — riprova');setImporting(false);};
+    r.onload=function(){
+      var result=r.result;var b64;
+      if(typeof result==='string'){b64=result.indexOf(',')>=0?result.split(',')[1]:result;}
+      else{var bytes=new Uint8Array(result);var binary='';for(var i=0;i<bytes.byteLength;i++){binary+=String.fromCharCode(bytes[i]);}b64=btoa(binary);}
+      var sys='Sei un personal trainer esperto. Analizza questa scheda di allenamento PDF e restituisci SOLO un JSON valido, senza markdown, senza backtick, senza testo aggiuntivo. Schema: {"nome":"nome scheda","blocchi":[{"nome":"nome giorno","es":[{"nome":"nome esercizio","tipo":"standard","gr":"gruppo muscolare","sets":3,"reps":"10","rec":90,"note":"","progressione":[],"durata":10,"intensita":"Media"}]}]}. Regole: tipo può essere standard, progressivo, riscaldamento. Se ci sono progressioni settimanali (es w1 3x6 w2 4x6) usa tipo progressivo e compila progressione come array [{sets:N,reps:"N"}] per ogni settimana. Per tapis roulant/circonduzioni usa tipo riscaldamento con durata in minuti. rec è in secondi (es 2 minuti = 120). Includi tutti i blocchi/giorni trovati.';
+      fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({system_instruction:{parts:[{text:sys}]},contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:b64}},{text:'Analizza questa scheda PT e restituisci il JSON.'}]}]})
+      }).then(function(resp){return resp.json();}).then(function(res2){
+        if(res2.error){throw new Error(res2.error.message||'Gemini error');}
+        var txt=res2.candidates&&res2.candidates[0]&&res2.candidates[0].content&&res2.candidates[0].content.parts[0]&&res2.candidates[0].content.parts[0].text||'';
+        var clean=txt.replace(/```json|```/g,'').trim();
+        var parsed=JSON.parse(clean);
+        var newScheda={id:uid(),nome:parsed.nome||file.name.replace('.pdf',''),attiva:false,data:new Date().toISOString(),
+          blocchi:(parsed.blocchi||[]).map(function(bl){return {id:uid(),nome:bl.nome||'Blocco',es:(bl.es||[]).map(function(ex){
+            var tipo=ex.tipo||'standard';
+            var base={id:uid(),nome:ex.nome||'',tipo:tipo,gr:ex.gr||'',note:ex.note||''};
+            if(tipo==='riscaldamento')return Object.assign(base,{durata:ex.durata||10,intensita:ex.intensita||'Media',recSet:0,recEs:0,rec:0});
+            if(tipo==='progressivo'){var prog=(ex.progressione&&ex.progressione.length)?ex.progressione:[{sets:ex.sets||3,reps:String(ex.reps||'6')}];return Object.assign(base,{peso:0,recSet:ex.rec||90,recEs:60,rec:ex.rec||90,progressione:prog,serie:prog[0]?prog[0].sets:3,reps:prog[0]?String(prog[0].reps):'6'});}
+            return Object.assign(base,{sets:ex.sets||3,serie:ex.sets||3,reps:String(ex.reps||'10'),peso:0,recSet:ex.rec||90,recEs:60,rec:ex.rec||90});
+          })};})
+        };
+        setSch(schede.map(function(x){return Object.assign({},x,{attiva:false});}).concat([newScheda]));
+        setImporting(false);
+      }).catch(function(err){setImportErr('Errore analisi: '+(err.message||'riprova'));setImporting(false);});
+    };
+    try{r.readAsArrayBuffer(file);}catch(e2){r.readAsDataURL(file);}
+  }
   return h('div',{style:{padding:'24px 16px'}},
-    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}},
+    h('input',{ref:fileRef,type:'file',accept:'.pdf,application/pdf',onChange:onPdfFile,style:{display:'none'}}),
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}},
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em'}},'Schede PT'),
-      h('div',{style:{display:'flex',gap:6}},
-        h(Btn,{onClick:importPreset,sec:true,sm:true},'📥 Importa PT'),
-        h(Btn,{onClick:function(){go('nuova');},sec:true,sm:true},'+ Nuova')
+      h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}},
+        h(Btn,{onClick:function(){if(!getGKey()){alert('Configura prima la Gemini API key nelle Impostazioni');return;}if(fileRef.current)fileRef.current.click();},sec:true,sm:true,style:{opacity:importing?0.5:1}},importing?'Analisi…':'📄 PDF'),
+        h(Btn,{onClick:importPreset,sec:true,sm:true},'📥 Buttari'),
+        h(Btn,{onClick:function(){go('nuova',{});},sec:true,sm:true},'+ Nuova')
       )
     ),
-    h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:'10px 14px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between'}},
-      h('div',null,
-        h('div',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},'SCHEDA PRONTA'),
-        h('div',{style:{fontSize:12,color:TEXT,marginTop:2}},'Fernando Buttari · Day 1 Upper + Day 2 Lower · 6 settimane')
-      ),
-      h(Btn,{onClick:importPreset,sm:true},'Carica →')
+    importing&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:'10px 14px',marginBottom:12,display:'flex',alignItems:'center',gap:8}},
+      h('div',{style:{width:7,height:7,borderRadius:'50%',background:ACC}}),
+      h('span',{style:{fontSize:12,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'Gemini sta analizzando la scheda PDF…')
     ),
-    schede.length===0&&h('div',{style:{textAlign:'center',padding:'40px 0'}},
+    importErr&&h('div',{style:{fontSize:11,color:'#EF4444',marginBottom:12,padding:'8px 12px',background:'rgba(239,68,68,0.08)',borderRadius:8,border:'1px solid rgba(239,68,68,0.2)'}},importErr),
+    schede.length===0&&!importing&&h('div',{style:{textAlign:'center',padding:'40px 0'}},
       h(Icon,{n:'scheda',sz:40,c:MUTED,style:{margin:'0 auto 16px'}}),
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,marginBottom:8}},'Nessuna scheda'),
-      h('div',{style:{color:MUTED,marginBottom:20,lineHeight:1.7}},'Inserisci gli esercizi che\nti ha dato il tuo PT'),
-      h(Btn,{onClick:function(){go('nuova');}},'Crea scheda')
+      h('div',{style:{color:MUTED,marginBottom:20,lineHeight:1.7}},'Carica il PDF del tuo PT\no creala manualmente'),
+      h('div',{style:{display:'flex',gap:8,justifyContent:'center'}},
+        h(Btn,{onClick:function(){if(fileRef.current)fileRef.current.click();}},'📄 Importa PDF'),
+        h(Btn,{sec:true,onClick:function(){go('nuova',{});}},'+ Manuale')
+      )
     ),
     schede.map(function(s,idx){
       return h(Card,{key:s.id,style:s.attiva?{border:'1px solid '+ACC3}:{}},
@@ -1319,10 +1386,13 @@ function SchedaV(p){
             h('div',{style:{fontSize:11,color:MUTED}},s.blocchi.length+' giorni · '+s.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi'),
             h('div',{style:{fontSize:10,color:MUTED,marginTop:2}},fmtD(s.data))
           ),
-          h('div',{style:{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:8}},
+          h('div',{style:{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}},
             s.attiva&&h('span',{style:{fontSize:10,background:ACC5,color:ACC,padding:'3px 8px',borderRadius:20,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'Attiva'),
             !s.attiva&&h('button',{onClick:function(){setSch(schede.map(function(x,i){return Object.assign({},x,{attiva:i===idx});}));},style:{background:'none',border:'0.5px solid '+BORD,borderRadius:8,padding:'4px 10px',color:MUTED,fontSize:11,cursor:'pointer'}},'Imposta attiva'),
-            h('button',{onClick:function(e){e.stopPropagation();if(confirm('Eliminare la scheda "'+s.nome+'"?')){setSch(schede.filter(function(_,i){return i!==idx;}));}},style:{background:'none',border:'none',padding:4,cursor:'pointer',marginTop:2}},h(Icon,{n:'trash',sz:16,c:'#EF4444'}))
+            h('div',{style:{display:'flex',gap:4}},
+              h('button',{onClick:function(){go('nuova',{initialScheda:s});},style:{background:'none',border:'0.5px solid '+BORD,borderRadius:8,padding:'4px 10px',color:MUTED,fontSize:11,cursor:'pointer'}},'✏️ Modifica'),
+              h('button',{onClick:function(e){e.stopPropagation();if(confirm('Eliminare la scheda "'+s.nome+'"?')){setSch(schede.filter(function(_,i){return i!==idx;}));}},style:{background:'none',border:'none',padding:4,cursor:'pointer'}},h(Icon,{n:'trash',sz:16,c:'#EF4444'}))
+            )
           )
         )
       );
@@ -1332,10 +1402,11 @@ function SchedaV(p){
 
 /* ── nuova scheda ── */
 function NuovaScheda(p){
-  var onSave=p.onSave,go=p.go;
-  var _s1=useState(0);var step=_s1[0];var setStep=_s1[1];
-  var _s2=useState('');var nome=_s2[0];var setNome=_s2[1];
-  var _s3=useState([{id:uid(),nome:'Giorno A',es:[]}]);var blocchi=_s3[0];var setBlocchi=_s3[1];
+  var onSave=p.onSave,go=p.go,init=p.initialScheda||null;
+  var _s1=useState(init?1:0);var step=_s1[0];var setStep=_s1[1];
+  var _s2=useState(init?init.nome:'');var nome=_s2[0];var setNome=_s2[1];
+  var _s3=useState(init?init.blocchi.map(function(b){return Object.assign({},b,{es:b.es.slice()});}):[{id:uid(),nome:'Giorno A',es:[]}]);
+  var blocchi=_s3[0];var setBlocchi=_s3[1];
   var _s4=useState(0);var ab=_s4[0];var setAb=_s4[1];
   var _s5=useState(false);var picker=_s5[0];var setPicker=_s5[1];
   var _s6=useState(null);var pendingNome=_s6[0];var setPendingNome=_s6[1];
@@ -1344,13 +1415,8 @@ function NuovaScheda(p){
   var showConfig=pendingNome!==null||editIdx>=0;
   var configEx=editIdx>=0?(blocchi[ab]&&blocchi[ab].es[editIdx]||null):null;
   function onConfigSave(exObj){
-    if(editIdx>=0){
-      setBlocchi(function(prev){return prev.map(function(b,bi){if(bi!==ab)return b;return Object.assign({},b,{es:b.es.map(function(e,ei){return ei===editIdx?exObj:e;})});});})
-      setEditIdx(-1);
-    } else {
-      setBlocchi(function(prev){return prev.map(function(b,bi){if(bi!==ab)return b;return Object.assign({},b,{es:b.es.concat([exObj])});});});
-      setPendingNome(null);
-    }
+    if(editIdx>=0){setBlocchi(function(prev){return prev.map(function(b,bi){if(bi!==ab)return b;return Object.assign({},b,{es:b.es.map(function(e,ei){return ei===editIdx?exObj:e;})});});});setEditIdx(-1);}
+    else{setBlocchi(function(prev){return prev.map(function(b,bi){if(bi!==ab)return b;return Object.assign({},b,{es:b.es.concat([exObj])});});});setPendingNome(null);}
   }
   if(step===0)return h('div',{style:{padding:'24px 16px'}},
     h(Back,{onClick:function(){go('scheda');}}),
@@ -1362,10 +1428,13 @@ function NuovaScheda(p){
   return h('div',{style:{padding:'24px 16px'}},
     showConfig&&h(ExerciseConfigSheet,{ex:configEx,nome:pendingNome,onSave:onConfigSave,onClose:function(){setPendingNome(null);setEditIdx(-1);}}),
     h(ExercisePicker,{visible:picker&&!showConfig,onClose:function(){setPicker(false);},onAdd:function(n){addFreq(n);setPicker(false);setPendingNome(n);},baseList:PESI_ES,label:'Scegli esercizio'}),
-    h(Back,{onClick:function(){setStep(0);}}),
+    h(Back,{onClick:function(){if(init){go('scheda');}else{setStep(0);}}}),
     h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',margin:'12px 0 14px'}},nome),
     h('div',{style:{display:'flex',gap:6,marginBottom:14,overflowX:'auto'}},
-      blocchi.map(function(b,i){return h('div',{key:b.id,style:{flexShrink:0,display:'flex',alignItems:'center',gap:3}},h('button',{onClick:function(){setAb(i);},style:{padding:'5px 12px',borderRadius:20,border:'1px solid '+(ab===i?ACC:BORD),background:ab===i?ACC2:'transparent',color:ab===i?ACC:MUTED,fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}},b.nome),blocchi.length>1&&h('button',{onClick:function(){if(confirm('Eliminare "'+b.nome+'"?')){setBlocchi(function(prev){var next=prev.filter(function(_,ii){return ii!==i;});return next;});setAb(function(cur){return cur>=blocchi.length-1?blocchi.length-2:cur;});}},style:{background:'none',border:'none',cursor:'pointer',padding:'2px 3px',lineHeight:1}},h(Icon,{n:'close',sz:12,c:'#EF4444'})));}),
+      blocchi.map(function(b,i){return h('div',{key:b.id,style:{flexShrink:0,display:'flex',alignItems:'center',gap:3}},
+        h('button',{onClick:function(){setAb(i);},style:{padding:'5px 12px',borderRadius:20,border:'1px solid '+(ab===i?ACC:BORD),background:ab===i?ACC2:'transparent',color:ab===i?ACC:MUTED,fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}},b.nome),
+        blocchi.length>1&&h('button',{onClick:function(){if(confirm('Eliminare "'+b.nome+'"?')){setBlocchi(function(prev){var next=prev.filter(function(_,ii){return ii!==i;});return next;});setAb(function(cur){return cur>=blocchi.length-1?blocchi.length-2:cur;});}},style:{background:'none',border:'none',cursor:'pointer',padding:'2px 3px',lineHeight:1}},h(Icon,{n:'close',sz:12,c:'#EF4444'}))
+      );}),
       h('button',{onClick:function(){var nb={id:uid(),nome:'Giorno '+String.fromCharCode(65+blocchi.length),es:[]};setBlocchi(function(prev){return prev.concat([nb]);});setAb(blocchi.length);},style:{flexShrink:0,padding:'5px 12px',borderRadius:20,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:12,cursor:'pointer'}},'+ giorno')
     ),
     blocchi[ab].es.map(function(ex,i){
@@ -1392,7 +1461,7 @@ function NuovaScheda(p){
       );
     }),
     h('button',{onClick:function(){setPicker(true);},style:{width:'100%',padding:'12px',borderRadius:10,border:'1px dashed '+ACC3,background:ACC5,color:ACC,fontSize:14,cursor:'pointer',fontWeight:600,marginBottom:16}},'+ Aggiungi esercizio'),
-    h(Btn,{full:true,onClick:function(){onSave({id:uid(),nome:nome,attiva:true,data:new Date().toISOString(),blocchi:blocchi});}},'Salva scheda')
+    h(Btn,{full:true,onClick:function(){onSave({id:init?init.id:uid(),nome:nome,attiva:init?init.attiva:true,data:init?init.data:new Date().toISOString(),blocchi:blocchi});}},init?'Salva modifiche':'Salva scheda')
   );
 }
 
@@ -1420,9 +1489,16 @@ function CorpoNutri(p){
   var _pending=useState(null);var pendingReport=_pending[0];var setPendingReport=_pending[1];
   var _pendDate=useState('');var pendDate=_pendDate[0];var setPendDate=_pendDate[1];
   var _pendLabel=useState('');var pendLabel=_pendLabel[0];var setPendLabel=_pendLabel[1];
+  var _pendMet=useState({});var pendingMetrics=_pendMet[0];var setPendingMetrics=_pendMet[1];
+  var BC_FIELDS={peso:'Peso (kg)',massaMagra:'Massa Magra (kg)',massaGrassa:'Massa Grassa (kg)',percGrasso:'% Grasso',acquaCorporea:'Acqua (L)',metabolismoBasale:'BMR (kcal)',BMI:'BMI',massaOssea:'Massa Ossea (kg)',muscolo:'Muscolo (kg)'};
+  var NUT_FIELDS={calorie:'Calorie (kcal)',proteine:'Proteine (g)',carboidrati:'Carboidrati (g)',grassi:'Grassi (g)',fibre:'Fibre (g)',acqua:'Acqua (L)'};
+  var BC_EMPTY={peso:null,massaMagra:null,massaGrassa:null,percGrasso:null,acquaCorporea:null,metabolismoBasale:null,BMI:null,massaOssea:null,muscolo:null};
+  var NUT_EMPTY={calorie:null,proteine:null,carboidrati:null,grassi:null,fibre:null,acqua:null};
   var fileRef=useRef(null);
   var pendingType=useRef('body_comp');
+  var pendingPdfRef=useRef(null);
   var chatEndRef=useRef(null);
+  var _viewPdf=useState(null);var viewingPdf=_viewPdf[0];var setViewingPdf=_viewPdf[1];
 
   var reports=(data.reports||[]).slice().sort(function(a,b){return new Date(b.reportDate)-new Date(a.reportDate);});
   var latest=reports[0]||null;
@@ -1437,11 +1513,14 @@ function CorpoNutri(p){
     if(!pendingReport)return;
     var finalReport=Object.assign({},pendingReport,{
       reportDate:pendDate||new Date().toISOString().slice(0,10),
-      label:pendLabel.trim()||undefined
+      label:pendLabel.trim()||undefined,
+      analysis:Object.assign({},pendingReport.analysis,{metrics:pendingMetrics}),
+      hasPdf:!!pendingPdfRef.current
     });
     var existing=data.reports||[];
     persist({reports:existing.concat([finalReport])});
-    setPendingReport(null);setPendDate('');setPendLabel('');
+    if(pendingPdfRef.current){savePdfLocal(finalReport.id,pendingPdfRef.current);pendingPdfRef.current=null;}
+    setPendingReport(null);setPendDate('');setPendLabel('');setPendingMetrics({});
   }
 
   function onFile(e){
@@ -1465,19 +1544,23 @@ function CorpoNutri(p){
         b64=btoa(binary);
       }
       var sys=type==='body_comp'
-        ?'Sei un esperto di composizione corporea. Estrai tutti i valori numerici dal report. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"body_comp","data_report":"YYYY-MM-DD o null","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
-        :'Sei un nutrizionista esperto. Estrai le informazioni nutrizionali dal documento. Se è un piano alimentare con sostituzioni (non un diario), estrai i MACRO TARGET giornalieri totali dichiarati (calorie totali, proteine, carboidrati, grassi). Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"nutrition","data_report":"YYYY-MM-DD o null","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
-      fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
+        ?'Sei un esperto di composizione corporea. Analizza il report ed estrai TUTTI i valori numerici usando nomi italiani e inglesi. Cerca: peso corporeo totale (kg), massa magra/FFM/lean mass (kg), massa grassa/FM/fat mass (kg), percentuale di grasso corporeo/% BF/FM% — se non indicata direttamente calcolala come (massaGrassa/peso)*100, acqua corporea totale/TBW (litri), metabolismo basale/BMR (kcal), BMI, massa ossea/bone mass/minerale osseo (kg) — cerca anche nelle note o appendici, massa muscolare/SMM/muscolo scheletrico/BCM (kg). Se un valore non esiste nel documento lascialo null. Rispondi SOLO con JSON valido senza markdown. Schema: {"tipo":"body_comp","data_report":"YYYY-MM-DD o null","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
+        :'Sei un nutrizionista esperto. Estrai le informazioni nutrizionali dal documento. Se è un piano alimentare con sostituzioni (non un diario), estrai i MACRO TARGET giornalieri totali dichiarati (calorie totali, proteine, carboidrati, grassi). Rispondi SOLO con JSON valido senza markdown. Schema: {"tipo":"nutrition","data_report":"YYYY-MM-DD o null","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
+      fetchGeminiWithRetry('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({system_instruction:{parts:[{text:sys}]},contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:b64}},{text:'Analizza e restituisci i dati nel formato JSON richiesto.'}]}]})
-      }).then(function(resp){return resp.json();}).then(function(result){
+      }).then(function(result){
         if(result.error){throw new Error(result.error.message||'Gemini error');}
         var txt=result.candidates&&result.candidates[0]&&result.candidates[0].content&&result.candidates[0].content.parts[0]&&result.candidates[0].content.parts[0].text||'';
         var clean=txt.replace(/```json|```/g,'').trim();
         var parsed=JSON.parse(clean);
         var extracted=parsed.data_report||'';
-        var draft={id:uid(),date:new Date().toISOString(),reportDate:extracted||new Date().toISOString().slice(0,10),type:type,filename:file.name,analysis:{sommario:parsed.sommario||'',metrics:parsed.metriche||{},highlights:parsed.highlights||[]}};
+        var emptyFields=type==='body_comp'?BC_EMPTY:NUT_EMPTY;
+        var mergedMetrics=Object.assign({},emptyFields,parsed.metriche||{});
+        var draft={id:uid(),date:new Date().toISOString(),reportDate:extracted||new Date().toISOString().slice(0,10),type:type,filename:file.name,analysis:{sommario:parsed.sommario||'',metrics:mergedMetrics,highlights:parsed.highlights||[]},hasPdf:true};
+        pendingPdfRef.current=b64;
         setPendingReport(draft);
+        setPendingMetrics(mergedMetrics);
         setPendDate(extracted||'');
         setPendLabel('');
         setUploading(null);
@@ -1503,12 +1586,12 @@ function CorpoNutri(p){
       if(rep.analysis.highlights&&rep.analysis.highlights.length)ctx+='Note: '+rep.analysis.highlights.join('; ')+'\n';
     });
     if(sessions.length>0)ctx+='Sessioni di allenamento registrate: '+sessions.length+' totali\n';
-    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
+    fetchGeminiWithRetry('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({system_instruction:{parts:[{text:'Sei un assistente esperto di composizione corporea e nutrizione sportiva. Rispondi sempre in italiano, in modo pratico e personalizzato. Hai accesso ai seguenti dati:\n'+ctx+'Se mancano dati per rispondere con precisione, dillo esplicitamente.'}]},
         contents:newMsgs.map(function(x){return{role:x.role==='assistant'?'model':'user',parts:[{text:x.content}]};})
       })
-    }).then(function(resp){return resp.json();}).then(function(result){
+    }).then(function(result){
       if(result.error){throw new Error(result.error.message||'Gemini error');}
       var aiText=result.candidates&&result.candidates[0]&&result.candidates[0].content&&result.candidates[0].content.parts[0]&&result.candidates[0].content.parts[0].text||'Errore nella risposta. Riprova.';
       setMsgs(function(prev){return prev.concat([{role:'assistant',content:aiText}]);});
@@ -1526,13 +1609,23 @@ function CorpoNutri(p){
 
   return h('div',{style:{paddingBottom:100}},
     h('input',{ref:fileRef,type:'file',accept:'.pdf,application/pdf',onChange:onFile,style:{display:'none'}}),
+    /* ─ PDF Viewer modal ─ */
+    viewingPdf&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.96)',zIndex:600,display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:SURF,borderBottom:'0.5px solid '+BORD,flexShrink:0}},
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.03em'}},'Report PDF'),
+        h('button',{onClick:function(){setViewingPdf(null);},style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:6,display:'flex',alignItems:'center',gap:6}},
+          h(Icon,{n:'close',sz:20,c:MUTED}),h('span',{style:{fontSize:12,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CHIUDI')
+        )
+      ),
+      h('iframe',{src:viewingPdf,style:{flex:1,border:'none',width:'100%'},title:'Report PDF'})
+    ),
     /* ─ Confirmation sheet ─ */
     pendingReport&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}},
       h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'0 0 40px',maxHeight:'88vh',overflowY:'auto'}},
         h('div',{style:{padding:'20px 16px 16px',borderBottom:'0.5px solid '+BORD}},
           h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}},
             h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC}},'Analisi completata'),
-            h('button',{onClick:function(){setPendingReport(null);},style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:18,c:MUTED}))
+            h('button',{onClick:function(){setPendingReport(null);setPendingMetrics({});},style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:18,c:MUTED}))
           ),
           h('div',{style:{fontSize:11,color:MUTED,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},pendingReport.filename)
         ),
@@ -1549,26 +1642,28 @@ function CorpoNutri(p){
             h(Lbl,null,'Etichetta (opzionale)'),
             h('input',{type:'text',value:pendLabel,onChange:function(e){setPendLabel(e.target.value);},placeholder:'es. Gennaio 2025, Post-cut, Inizio bulk…',style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14}})
           ),
-          /* Metrics preview */
+          /* Metrics editable */
           pendingReport.analysis&&h('div',{style:{marginBottom:16}},
-            h(Lbl,null,'Dati estratti'),
-            h('div',{style:{background:SURF2,borderRadius:10,padding:'10px 12px'}},
-              Object.entries(pendingReport.analysis.metrics||{}).filter(function(kv){return kv[1]!==null&&kv[1]!==undefined;}).length===0
-                ?h('div',{style:{fontSize:12,color:MUTED}},'Nessun valore numerico trovato — verifica il PDF.')
-                :h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
-                  Object.entries(pendingReport.analysis.metrics||{}).filter(function(kv){return kv[1]!==null&&kv[1]!==undefined;}).map(function(kv){
-                    return h('div',{key:kv[0],style:{background:SURF,borderRadius:8,padding:'5px 10px',fontSize:11}},
-                      h('span',{style:{color:MUTED}},kv[0]+': '),
-                      h('span',{style:{color:ACC,fontFamily:"'Roboto Mono',monospace",fontWeight:700}},String(kv[1]))
-                    );
+            h(Lbl,null,'Dati estratti — modifica se necessario'),
+            h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+              Object.entries(pendingReport.type==='body_comp'?BC_FIELDS:NUT_FIELDS).map(function(kv){
+                var key=kv[0];var label=kv[1];
+                var val=pendingMetrics[key];
+                return h('div',{key:key},
+                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}},label),
+                  h('input',{type:'number',step:'any',value:val===null||val===undefined?'':val,
+                    placeholder:'—',
+                    onChange:function(e){var v=e.target.value===''?null:parseFloat(e.target.value);setPendingMetrics(function(prev){var u=Object.assign({},prev);u[key]=v;return u;});},
+                    style:{width:'100%',background:val!==null&&val!==undefined?SURF2:'rgba(239,68,68,0.06)',border:'1px solid '+(val!==null&&val!==undefined?BORD:'rgba(239,68,68,0.25)'),borderRadius:8,padding:'8px 10px',color:val!==null&&val!==undefined?ACC:MUTED,fontSize:14,fontFamily:"'Roboto Mono',monospace",fontWeight:700,textAlign:'center'}
                   })
-                )
+                );
+              })
             )
           ),
           /* Save / discard */
           h(Btn,{full:true,onClick:confirmSave,style:{opacity:pendDate?1:0.45,pointerEvents:pendDate?'auto':'none'}},'Salva report'),
           h('div',{style:{height:8}}),
-          h(Btn,{full:true,sec:true,onClick:function(){setPendingReport(null);setPendDate('');}},'Annulla')
+          h(Btn,{full:true,sec:true,onClick:function(){setPendingReport(null);setPendDate('');setPendingMetrics({});}},'Annulla')
         )
       )
     ),
@@ -1705,7 +1800,8 @@ function CorpoNutri(p){
               ),
               h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0,marginLeft:8}},
                 h('span',{style:{fontSize:9,color:tc,background:tc+'18',padding:'2px 8px',borderRadius:20,border:'1px solid '+tc+'44',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},TYPE_LABEL[rep.type]||rep.type),
-                h('button',{onClick:function(){if(confirm('Eliminare questo report?')){persist({reports:(data.reports||[]).filter(function(x){return x.id!==rep.id;})});}},style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'trash',sz:14,c:'#EF4444'}))
+                rep.hasPdf&&h('button',{onClick:function(){var b64=loadPdfLocal(rep.id);if(!b64){alert('PDF non trovato — potrebbe essere stato rimosso dalla memoria del dispositivo.');return;}var blob=b64ToBlob(b64);var url=URL.createObjectURL(blob);setViewingPdf(url);},style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'📄 PDF'),
+                h('button',{onClick:function(){if(confirm('Eliminare questo report?')){deletePdfLocal(rep.id);persist({reports:(data.reports||[]).filter(function(x){return x.id!==rep.id;})});}},style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'trash',sz:14,c:'#EF4444'}))
               )
             )
           );
@@ -1785,7 +1881,7 @@ function App(){
       case 'stats':      return h(Stats,{sessions:sessions,schede:schede,go:go});
       case 'eser':       return h(EsDetail,{ex:vp.ex,tipo:vp.tipo,sessions:sessions,go:go});
       case 'scheda':     return h(SchedaV,{schede:schede,setSch:setSch,go:go});
-      case 'nuova':      return h(NuovaScheda,{onSave:function(s){setSchede(function(prev){return prev.map(function(x){return Object.assign({},x,{attiva:false});}).concat([s]);});go('scheda');},go:go});
+      case 'nuova':      return h(NuovaScheda,{initialScheda:vp.initialScheda||null,onSave:function(s){if(vp.initialScheda){setSchede(function(prev){return prev.map(function(x){return x.id===s.id?s:x;});});}else{setSchede(function(prev){return prev.map(function(x){return Object.assign({},x,{attiva:false});}).concat([s]);});}go('scheda');},go:go});
       case 'settings':   return h(Settings,{profile:profile,onProfile:function(pr){setProfile(pr);},go:go});
       case 'corpo':      return h(CorpoNutri,{sessions:sessions,go:go});
       default:           return h(Home,{schede:schede,sessions:sessions,profile:profile,go:go});
