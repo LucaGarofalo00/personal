@@ -123,7 +123,9 @@ var IC={
   close:[['line',{x1:'18',y1:'6',x2:'6',y2:'18'}],['line',{x1:'6',y1:'6',x2:'18',y2:'18'}]],
   person:[['path',{d:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2'}],['circle',{cx:'12',cy:'7',r:'4'}]],
   palette:[['circle',{cx:'13.5',cy:'6.5',r:'.5'}],['circle',{cx:'17.5',cy:'10.5',r:'.5'}],['circle',{cx:'8.5',cy:'7.5',r:'.5'}],['circle',{cx:'6.5',cy:'12.5',r:'.5'}],['path',{d:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z'}]],
-  trash:[['polyline',{points:'3 6 5 6 21 6'}],['path',{d:'M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2'}],['line',{x1:'10',y1:'11',x2:'10',y2:'17'}],['line',{x1:'14',y1:'11',x2:'14',y2:'17'}]]
+  trash:[['polyline',{points:'3 6 5 6 21 6'}],['path',{d:'M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2'}],['line',{x1:'10',y1:'11',x2:'10',y2:'17'}],['line',{x1:'14',y1:'11',x2:'14',y2:'17'}]],
+  corpo:[['path',{d:'M12 2a3 3 0 013 3 3 3 0 01-3 3 3 3 0 01-3-3 3 3 0 013-3'}],['path',{d:'M6.5 8.5C5 9.5 4 11.5 4 14l1 7h14l1-7c0-2.5-1-4.5-2.5-5.5'}],['path',{d:'M9 21l.5-6M15 21l-.5-6'}],['path',{d:'M9 12l-1.5 3M15 12l1.5 3'}]],
+  upload:[['path',{d:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4'}],['polyline',{points:'17 8 12 3 7 8'}],['line',{x1:'12',y1:'3',x2:'12',y2:'15'}]]
 };
 function Icon(p){return h(Ico,{paths:IC[p.n]||[],sz:p.sz||20,c:p.c,style:p.style});}
 
@@ -342,13 +344,13 @@ function TipCard(p){
 
 /* ── nav ── */
 function Nav(p){
-  var tabs=[['home',IC.home,'Home'],['start',IC.train,'Allena'],['log',IC.history,'Storico'],['stats',IC.stats,'Progressi'],['scheda',IC.scheda,'Scheda']];
+  var tabs=[['home',IC.home,'Casa'],['start',IC.train,'Allena'],['log',IC.history,'Log'],['stats',IC.stats,'Stats'],['scheda',IC.scheda,'Scheda'],['corpo',IC.corpo,'Corpo']];
   return h('div',{style:{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:440,background:SURF,borderTop:'1px solid '+BORD,display:'flex',zIndex:99}},
     tabs.map(function(t){
       var on=p.cur===t[0]||((p.cur==='live'||p.cur==='callive')&&t[0]==='start');
-      return h('button',{key:t[0],onClick:function(){p.go(t[0]);},style:{flex:1,padding:'10px 0 14px',background:'none',border:'none',color:on?ACC:MUTED,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
-        h(Ico,{paths:t[1],sz:t[0]==='start'?22:19,c:on?'var(--acc)':MUTED}),
-        h('span',{style:{fontSize:9,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em'}},t[2])
+      return h('button',{key:t[0],onClick:function(){p.go(t[0]);},style:{flex:1,padding:'9px 0 13px',background:'none',border:'none',color:on?ACC:MUTED,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:2}},
+        h(Ico,{paths:t[1],sz:t[0]==='start'?20:17,c:on?'var(--acc)':MUTED}),
+        h('span',{style:{fontSize:8,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}},t[2])
       );
     })
   );
@@ -1333,6 +1335,317 @@ function NuovaScheda(p){
   );
 }
 
+/* ── corpo & nutrizione ── */
+var CORPO_KEY='gymtracker_corpo';
+function loadCorpo(){try{return JSON.parse(localStorage.getItem(CORPO_KEY))||{reports:[]};}catch(e){return{reports:[]};}}
+function saveCorpo(d){try{localStorage.setItem(CORPO_KEY,JSON.stringify(d));}catch(e){}}
+
+function MCard(p){
+  return h('div',{style:{background:SURF2,borderRadius:12,padding:'11px 8px',textAlign:'center'}},
+    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:p.big?30:22,letterSpacing:'0.02em',color:p.c||ACC,lineHeight:1}},p.val||'—'),
+    p.unit&&h('span',{style:{fontSize:8,color:p.c||ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}},' '+p.unit),
+    h('div',{style:{fontSize:8,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:3}},p.label)
+  );
+}
+
+function CorpoNutri(p){
+  var go=p.go,sessions=p.sessions||[];
+  var _d=useState(function(){return loadCorpo();});var data=_d[0];var setData=_d[1];
+  var _msgs=useState([]);var msgs=_msgs[0];var setMsgs=_msgs[1];
+  var _inp=useState('');var chatInp=_inp[0];var setChatInp=_inp[1];
+  var _loading=useState(false);var loading=_loading[0];var setLoading=_loading[1];
+  var _uploading=useState(null);var uploading=_uploading[0];var setUploading=_uploading[1];
+  var _err=useState('');var uploadErr=_err[0];var setUploadErr=_err[1];
+  var _pending=useState(null);var pendingReport=_pending[0];var setPendingReport=_pending[1];
+  var _pendDate=useState('');var pendDate=_pendDate[0];var setPendDate=_pendDate[1];
+  var _pendLabel=useState('');var pendLabel=_pendLabel[0];var setPendLabel=_pendLabel[1];
+  var fileRef=useRef(null);
+  var pendingType=useRef('body_comp');
+  var chatEndRef=useRef(null);
+
+  var reports=(data.reports||[]).slice().sort(function(a,b){return new Date(b.reportDate)-new Date(a.reportDate);});
+  var latest=reports[0]||null;
+  var m=latest&&latest.analysis&&latest.analysis.metrics||{};
+
+  function persist(newData){setData(newData);saveCorpo(newData);}
+  function triggerUpload(type){pendingType.current=type;if(fileRef.current)fileRef.current.click();}
+
+  function fmtM(v,dec){if(v===null||v===undefined||v==='')return '—';var n=parseFloat(v);return isNaN(n)?String(v):(dec?n.toFixed(dec):String(Math.round(n)));}
+
+  function confirmSave(){
+    if(!pendingReport)return;
+    var finalReport=Object.assign({},pendingReport,{
+      reportDate:pendDate||new Date().toISOString().slice(0,10),
+      label:pendLabel.trim()||undefined
+    });
+    var existing=data.reports||[];
+    persist({reports:existing.concat([finalReport])});
+    setPendingReport(null);setPendDate('');setPendLabel('');
+  }
+
+  function onFile(e){
+    var file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    e.target.value='';
+    var type=pendingType.current;
+    setUploading(type);setUploadErr('');
+    var r=new FileReader();
+    r.onerror=function(){setUploadErr('Lettura file fallita');setUploading(null);};
+    r.onload=function(){
+      var b64=r.result.split(',')[1];
+      var sys=type==='body_comp'
+        ?'Sei un esperto di composizione corporea. Estrai tutti i valori numerici dal report. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"body_comp","data_report":"YYYY-MM-DD o null","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
+        :'Sei un nutrizionista esperto. Estrai tutte le informazioni nutrizionali. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"nutrition","data_report":"YYYY-MM-DD o null","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
+      fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:sys,messages:[{role:'user',content:[
+          {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+          {type:'text',text:'Analizza e restituisci i dati nel formato JSON richiesto.'}
+        ]}]})
+      }).then(function(resp){return resp.json();}).then(function(result){
+        var txt=(result.content||[]).filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join('');
+        var clean=txt.replace(/```json|```/g,'').trim();
+        var parsed=JSON.parse(clean);
+        var extracted=parsed.data_report||'';
+        var draft={id:uid(),date:new Date().toISOString(),reportDate:extracted||new Date().toISOString().slice(0,10),type:type,filename:file.name,analysis:{sommario:parsed.sommario||'',metrics:parsed.metriche||{},highlights:parsed.highlights||[]}};
+        setPendingReport(draft);
+        setPendDate(extracted||'');
+        setPendLabel('');
+        setUploading(null);
+      }).catch(function(err){
+        setUploadErr('Errore analisi: '+(err.message||'riprova'));
+        setUploading(null);
+      });
+    };
+    r.readAsDataURL(file);
+  }
+
+  function sendChat(){
+    var msg=chatInp.trim();
+    if(!msg||loading)return;
+    setChatInp('');
+    var userMsg={role:'user',content:msg};
+    var newMsgs=msgs.concat([userMsg]);
+    setMsgs(newMsgs);
+    setLoading(true);
+    var ctx='Dati utente disponibili:\n';
+    reports.forEach(function(rep){
+      ctx+='['+rep.type.replace('_',' ')+' · '+rep.reportDate+']: '+JSON.stringify(rep.analysis.metrics)+'\nSintesi: '+(rep.analysis.sommario||'')+'\n';
+      if(rep.analysis.highlights&&rep.analysis.highlights.length)ctx+='Note: '+rep.analysis.highlights.join('; ')+'\n';
+    });
+    if(sessions.length>0)ctx+='Sessioni di allenamento registrate: '+sessions.length+' totali\n';
+    fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+        system:'Sei un assistente esperto di composizione corporea e nutrizione sportiva. Rispondi sempre in italiano, in modo pratico e personalizzato. Hai accesso ai seguenti dati:\n'+ctx+'Se mancano dati per rispondere con precisione, dillo esplicitamente.',
+        messages:newMsgs.map(function(x){return{role:x.role,content:x.content};})
+      })
+    }).then(function(resp){return resp.json();}).then(function(result){
+      var aiText=(result.content||[]).filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join('');
+      setMsgs(function(prev){return prev.concat([{role:'assistant',content:aiText}]);});
+      setLoading(false);
+    }).catch(function(){
+      setMsgs(function(prev){return prev.concat([{role:'assistant',content:'Errore nella risposta. Riprova.'}]);});
+      setLoading(false);
+    });
+  }
+
+  useEffect(function(){if(chatEndRef.current)chatEndRef.current.scrollIntoView({behavior:'smooth'});},[msgs,loading]);
+
+  var TYPE_COLOR={body_comp:ACC,nutrition:'#4ADE80'};
+  var TYPE_LABEL={body_comp:'Body Comp',nutrition:'Nutrizione'};
+
+  return h('div',{style:{paddingBottom:100}},
+    h('input',{ref:fileRef,type:'file',accept:'application/pdf',onChange:onFile,style:{display:'none'}}),
+    /* ─ Confirmation sheet ─ */
+    pendingReport&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}},
+      h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'0 0 40px',maxHeight:'88vh',overflowY:'auto'}},
+        h('div',{style:{padding:'20px 16px 16px',borderBottom:'0.5px solid '+BORD}},
+          h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}},
+            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC}},'Analisi completata'),
+            h('button',{onClick:function(){setPendingReport(null);},style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:18,c:MUTED}))
+          ),
+          h('div',{style:{fontSize:11,color:MUTED,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},pendingReport.filename)
+        ),
+        h('div',{style:{padding:'16px'}},
+          /* Date field — most important */
+          h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:'14px',marginBottom:16}},
+            h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:8}},'DATA DEL REPORT'),
+            h('div',{style:{fontSize:12,color:MUTED,marginBottom:10,lineHeight:1.5}},pendDate?'L\'AI ha trovato questa data nel PDF. Confermala o correggila.':'L\'AI non ha trovato una data nel PDF. Inseriscila tu.'),
+            h('input',{type:'date',value:pendDate,onChange:function(e){setPendDate(e.target.value);},style:{width:'100%',background:SURF2,border:'1px solid '+(pendDate?ACC3:BORD),borderRadius:8,padding:'11px 12px',color:TEXT,fontSize:16,fontFamily:"'Roboto Mono',monospace",cursor:'pointer'}}),
+            !pendDate&&h('div',{style:{fontSize:11,color:'#EF4444',marginTop:6}},'⚠ Imposta la data prima di salvare')
+          ),
+          /* Optional label */
+          h('div',{style:{marginBottom:16}},
+            h(Lbl,null,'Etichetta (opzionale)'),
+            h('input',{type:'text',value:pendLabel,onChange:function(e){setPendLabel(e.target.value);},placeholder:'es. Gennaio 2025, Post-cut, Inizio bulk…',style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14}})
+          ),
+          /* Metrics preview */
+          pendingReport.analysis&&h('div',{style:{marginBottom:16}},
+            h(Lbl,null,'Dati estratti'),
+            h('div',{style:{background:SURF2,borderRadius:10,padding:'10px 12px'}},
+              Object.entries(pendingReport.analysis.metrics||{}).filter(function(kv){return kv[1]!==null&&kv[1]!==undefined;}).length===0
+                ?h('div',{style:{fontSize:12,color:MUTED}},'Nessun valore numerico trovato — verifica il PDF.')
+                :h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
+                  Object.entries(pendingReport.analysis.metrics||{}).filter(function(kv){return kv[1]!==null&&kv[1]!==undefined;}).map(function(kv){
+                    return h('div',{key:kv[0],style:{background:SURF,borderRadius:8,padding:'5px 10px',fontSize:11}},
+                      h('span',{style:{color:MUTED}},kv[0]+': '),
+                      h('span',{style:{color:ACC,fontFamily:"'Roboto Mono',monospace",fontWeight:700}},String(kv[1]))
+                    );
+                  })
+                )
+            )
+          ),
+          /* Save / discard */
+          h(Btn,{full:true,onClick:confirmSave,style:{opacity:pendDate?1:0.45,pointerEvents:pendDate?'auto':'none'}},'Salva report'),
+          h('div',{style:{height:8}}),
+          h(Btn,{full:true,sec:true,onClick:function(){setPendingReport(null);setPendDate('');}},'Annulla')
+        )
+      )
+    ),
+    /* ─ Header ─ */
+    h('div',{style:{padding:'24px 16px 14px',background:SURF,borderBottom:'0.5px solid '+BORD,position:'sticky',top:0,zIndex:10}},
+      h('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}},
+        h('div',null,
+          h('div',{style:{fontSize:11,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}},'Analisi'),
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.03em',lineHeight:1}},'Corpo & Nutrizione')
+        ),
+        uploading&&h('div',{style:{display:'flex',alignItems:'center',gap:5,background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:'6px 10px'}},
+          h('div',{style:{width:6,height:6,borderRadius:'50%',background:ACC,animation:'pulse 1s infinite'}}),
+          h('span',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},uploading==='body_comp'?'Analisi body comp…':'Analisi nutrizione…')
+        )
+      ),
+      h('div',{style:{display:'flex',gap:6}},
+        h('button',{onClick:function(){triggerUpload('body_comp');},disabled:!!uploading,style:{flex:1,padding:'9px 6px',borderRadius:10,border:'1px solid '+ACC3,background:ACC5,color:ACC,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.05em',opacity:uploading?0.6:1}},'+ Body Comp'),
+        h('button',{onClick:function(){triggerUpload('nutrition');},disabled:!!uploading,style:{flex:1,padding:'9px 6px',borderRadius:10,border:'1px solid '+BORD,background:'transparent',color:TEXT,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.05em',opacity:uploading?0.6:1}},'+ Nutrizione')
+      ),
+      uploadErr&&h('div',{style:{fontSize:11,color:'#EF4444',marginTop:8,padding:'6px 10px',background:'rgba(239,68,68,0.08)',borderRadius:8,border:'1px solid rgba(239,68,68,0.2)'}},uploadErr)
+    ),
+    /* ─ Empty state ─ */
+    reports.length===0&&!uploading&&h('div',{style:{padding:'60px 20px',textAlign:'center'}},
+      h('div',{style:{fontSize:56,marginBottom:16}},'📊'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,marginBottom:8,letterSpacing:'0.03em'}},'Nessun report ancora'),
+      h('div',{style:{fontSize:13,color:MUTED,lineHeight:1.8,marginBottom:32}},'Carica il tuo report di body composition\n(InBody, DEXA, BIA…) o la tua scheda\nalimentare in PDF per iniziare.'),
+      h('div',{style:{display:'flex',flexDirection:'column',gap:8,maxWidth:280,margin:'0 auto'}},
+        h(Btn,{full:true,onClick:function(){triggerUpload('body_comp');}},'📈 Carica Body Composition'),
+        h('div',{style:{height:4}}),
+        h(Btn,{full:true,sec:true,onClick:function(){triggerUpload('nutrition');}},'🥗 Carica Scheda Nutrizione')
+      )
+    ),
+    /* ─ Loading state ─ */
+    uploading&&reports.length===0&&h('div',{style:{padding:'80px 24px',textAlign:'center'}},
+      h('div',{style:{fontSize:40,marginBottom:14}},'⚙️'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,color:ACC,letterSpacing:'0.03em',marginBottom:6}},'Analisi in corso…'),
+      h('div',{style:{fontSize:13,color:MUTED}},'Estraggo i dati dal PDF, attendi.')
+    ),
+    /* ─ Dashboard ─ */
+    reports.length>0&&h('div',{style:{padding:'16px'}},
+      /* Latest metrics */
+      latest&&h('div',null,
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
+          h(Lbl,null,'Ultimo report · '+latest.reportDate),
+          h('span',{style:{fontSize:9,color:TYPE_COLOR[latest.type]||ACC,background:(TYPE_COLOR[latest.type]||ACC)+'18',padding:'3px 9px',borderRadius:20,border:'1px solid '+(TYPE_COLOR[latest.type]||ACC)+'44',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},TYPE_LABEL[latest.type]||latest.type)
+        ),
+        /* Body comp metrics grid */
+        latest.type==='body_comp'&&h('div',null,
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:6}},
+            h(MCard,{val:fmtM(m.peso,1),unit:'kg',label:'Peso',big:true}),
+            h(MCard,{val:fmtM(m.massaMagra,1),unit:'kg',label:'Massa Magra'}),
+            h(MCard,{val:fmtM(m.percGrasso,1),unit:'%',label:'% Grasso'})
+          ),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:6}},
+            h(MCard,{val:fmtM(m.massaGrassa,1),unit:'kg',label:'Massa Grassa'}),
+            h(MCard,{val:fmtM(m.acquaCorporea,1),unit:'kg',label:'Acqua'}),
+            h(MCard,{val:fmtM(m.metabolismoBasale),unit:'kcal',label:'Metab. Basale'})
+          ),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:14}},
+            h(MCard,{val:fmtM(m.BMI,1),unit:'',label:'BMI'}),
+            h(MCard,{val:fmtM(m.massaOssea,2),unit:'kg',label:'Massa Ossea'}),
+            h(MCard,{val:fmtM(m.muscolo,1),unit:'kg',label:'Muscolo'})
+          )
+        ),
+        /* Nutrition metrics grid */
+        latest.type==='nutrition'&&h('div',null,
+          h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}},
+            h(MCard,{val:fmtM(m.calorie),unit:'kcal',label:'Calorie/die',big:true,c:'#4ADE80'}),
+            h(MCard,{val:fmtM(m.proteine),unit:'g',label:'Proteine',c:'#4ADE80'})
+          ),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:14}},
+            h(MCard,{val:fmtM(m.carboidrati),unit:'g',label:'Carbo',c:'#4ADE80'}),
+            h(MCard,{val:fmtM(m.grassi),unit:'g',label:'Grassi',c:'#4ADE80'}),
+            h(MCard,{val:fmtM(m.fibre),unit:'g',label:'Fibre',c:'#4ADE80'})
+          )
+        ),
+        /* Highlights */
+        latest.analysis.highlights&&latest.analysis.highlights.length>0&&h('div',{style:{background:SURF2,borderRadius:12,padding:'12px 14px',marginBottom:12}},
+          h(Lbl,null,'Evidenze chiave'),
+          latest.analysis.highlights.map(function(hl,i){
+            return h('div',{key:i,style:{display:'flex',gap:8,marginBottom:i<latest.analysis.highlights.length-1?6:0,alignItems:'flex-start'}},
+              h('span',{style:{color:ACC,flexShrink:0,fontSize:13}},'·'),
+              h('div',{style:{fontSize:12,lineHeight:1.6}},hl)
+            );
+          })
+        ),
+        /* Summary */
+        latest.analysis.sommario&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:'12px 14px',marginBottom:16}},
+          h(Lbl,null,'Sintesi'),
+          h('div',{style:{fontSize:13,lineHeight:1.7}},latest.analysis.sommario)
+        )
+      ),
+      /* ─ Chat ─ */
+      h('div',{style:{marginBottom:20}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:10}},
+          h(Icon,{n:'bulb',sz:14,c:ACC}),
+          h('div',{style:{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:12,color:ACC,textTransform:'uppercase',letterSpacing:'0.08em'}},'Analisi AI · Fai domande sui tuoi dati')
+        ),
+        msgs.length===0&&h('div',{style:{background:SURF2,borderRadius:12,padding:'12px 14px',marginBottom:10}},
+          h('div',{style:{fontSize:11,color:MUTED,marginBottom:8}},'Suggerimenti:'),
+          ['Il mio grasso corporeo è nella norma?','Come migliorare la massa magra in base al mio metabolismo?','La mia dieta supporta il tipo di allenamento che faccio?','Cosa dovrei ottimizzare per primo?'].map(function(q,i){
+            return h('button',{key:i,onClick:function(){setChatInp(q);},style:{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',marginBottom:4,background:'transparent',border:'0.5px solid '+BORD,borderRadius:8,color:TEXT,fontSize:12,cursor:'pointer',lineHeight:1.4}},q);
+          })
+        ),
+        msgs.length>0&&h('div',{style:{maxHeight:340,overflowY:'auto',marginBottom:10,display:'flex',flexDirection:'column',gap:8}},
+          msgs.map(function(msg,i){
+            var isUser=msg.role==='user';
+            return h('div',{key:i,style:{alignSelf:isUser?'flex-end':'flex-start',maxWidth:'90%',background:isUser?ACC2:SURF2,border:'0.5px solid '+(isUser?ACC3:BORD),borderRadius:isUser?'14px 14px 4px 14px':'14px 14px 14px 4px',padding:'10px 13px'}},
+              h('div',{style:{fontSize:13,lineHeight:1.65,color:isUser?ACC:TEXT,whiteSpace:'pre-wrap'}},msg.content)
+            );
+          }),
+          loading&&h('div',{style:{alignSelf:'flex-start',background:SURF2,border:'0.5px solid '+BORD,borderRadius:'14px 14px 14px 4px',padding:'10px 13px'}},
+            h('div',{style:{display:'flex',gap:4,alignItems:'center'}},
+              [0,1,2].map(function(i){return h('div',{key:i,style:{width:5,height:5,borderRadius:'50%',background:MUTED,opacity:0.6}});})
+            )
+          ),
+          h('div',{ref:chatEndRef})
+        ),
+        h('div',{style:{display:'flex',gap:8}},
+          h('input',{type:'text',value:chatInp,onChange:function(e){setChatInp(e.target.value);},onKeyDown:function(e){if(e.key==='Enter'&&!e.shiftKey)sendChat();},placeholder:'Chiedi qualcosa…',style:{flex:1,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'11px 14px',color:TEXT,fontSize:14}}),
+          h('button',{onClick:sendChat,disabled:loading||!chatInp.trim(),style:{padding:'11px 18px',borderRadius:10,border:'none',background:ACC,color:ACT,fontWeight:700,fontSize:13,cursor:'pointer',flexShrink:0,opacity:loading||!chatInp.trim()?0.5:1}},'→')
+        )
+      ),
+      /* ─ All reports list ─ */
+      reports.length>0&&h('div',null,
+        h(Lbl,null,'Report caricati ('+reports.length+')'),
+        reports.map(function(rep){
+          var tc=TYPE_COLOR[rep.type]||ACC;
+          return h(Card,{key:rep.id},
+            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+              h('div',{style:{flex:1,minWidth:0}},
+                h('div',{style:{fontSize:12,fontWeight:500,marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},rep.filename),
+                h('div',{style:{fontSize:11,color:MUTED}},rep.reportDate)
+              ),
+              h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0,marginLeft:8}},
+                h('span',{style:{fontSize:9,color:tc,background:tc+'18',padding:'2px 8px',borderRadius:20,border:'1px solid '+tc+'44',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},TYPE_LABEL[rep.type]||rep.type),
+                h('button',{onClick:function(){if(confirm('Eliminare questo report?')){persist({reports:(data.reports||[]).filter(function(x){return x.id!==rep.id;})});}},style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'trash',sz:14,c:'#EF4444'}))
+              )
+            )
+          );
+        })
+      )
+    )
+  );
+}
+
 /* ── app ── */
 function App(){
   var stored=stLoad();
@@ -1401,6 +1714,7 @@ function App(){
       case 'scheda':     return h(SchedaV,{schede:schede,setSch:setSch,go:go});
       case 'nuova':      return h(NuovaScheda,{onSave:function(s){setSchede(function(prev){return prev.map(function(x){return Object.assign({},x,{attiva:false});}).concat([s]);});go('scheda');},go:go});
       case 'settings':   return h(Settings,{profile:profile,onProfile:function(pr){setProfile(pr);},go:go});
+      case 'corpo':      return h(CorpoNutri,{sessions:sessions,go:go});
       default:           return h(Home,{schede:schede,sessions:sessions,profile:profile,go:go});
     }
   }
