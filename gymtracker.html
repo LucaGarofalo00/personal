@@ -48,11 +48,9 @@ function saveProfile(p){try{localStorage.setItem(PK,JSON.stringify(p));}catch(e)
 function stLoad(){try{return JSON.parse(localStorage.getItem(SK))||null;}catch(e){return null;}}
 function stSave(d){try{localStorage.setItem(SK,JSON.stringify(d));}catch(e){}}
 /* ── github gist sync ── */
-var GID_KEY='gymtracker_gist_id', TOK_KEY='gymtracker_token', GKEY_KEY='gymtracker_gkey';
+var GID_KEY='gymtracker_gist_id', TOK_KEY='gymtracker_token';
 function getToken(){try{return localStorage.getItem(TOK_KEY)||'';}catch(e){return '';}}
 function saveToken(t){try{localStorage.setItem(TOK_KEY,t);}catch(e){}}
-function getGKey(){try{return localStorage.getItem(GKEY_KEY)||'';}catch(e){return ''}}
-function saveGKey(k){try{localStorage.setItem(GKEY_KEY,k);}catch(e){}}
 function getGistId(){try{return localStorage.getItem(GID_KEY)||'';}catch(e){return '';}}
 function saveGistId(id){try{localStorage.setItem(GID_KEY,id);}catch(e){}}
 
@@ -130,23 +128,7 @@ function ton(es){return es.reduce(function(t,e){return t+(e.serie||[]).filter(fu
 function rm1(p,r){return r<=1?p:Math.round(p*(1+r/30));}
 function parseReps(r){var s=String(r);return s.indexOf('-')>=0?parseInt(s,10):(parseInt(s,10)||10);}
 function estimateTime(bl){var m=10;bl.es.forEach(function(ex){if(ex.tipo==='riscaldamento'){m+=(ex.durata||10)+1;}else{var s=typeof ex.serie==='number'?ex.serie:(ex.sets||3);var r=ex.rec||ex.recSet||90;m+=s*(0.75+r/60)+1;}});return Math.ceil(m/5)*5;}
-/* ── gemini retry helper ── */
-function fetchGeminiWithRetry(url,options,retries){
-  if(retries===undefined)retries=3;
-  return fetch(url,options).then(function(resp){return resp.json();}).then(function(result){
-    if(result.error){
-      var msg=result.error.message||'';
-      var retryable=msg.indexOf('high demand')>=0||msg.indexOf('overloaded')>=0||msg.indexOf('RESOURCE_EXHAUSTED')>=0||result.error.code===429||result.error.code===503;
-      if(retryable&&retries>0){
-        return new Promise(function(resolve,reject){
-          setTimeout(function(){fetchGeminiWithRetry(url,options,retries-1).then(resolve).catch(reject);},3500);
-        });
-      }
-      throw new Error(msg||'Gemini error');
-    }
-    return result;
-  });
-}
+
 /* ── pdf blob helper ── */
 function b64ToBlob(b64){
   var binary=atob(b64);var bytes=new Uint8Array(binary.length);
@@ -459,7 +441,7 @@ function ProfileSetup(p){
 function Settings(p){
   var profile=p.profile,onProfile=p.onProfile,go=p.go;
   var _1=useState(loadTheme().id);var themeId=_1[0];var setThemeId=_1[1];
-  var _2=useState(Object.assign({token:getToken(),gkey:getGKey(),pdfrepo:getPdfRepo()},profile||{nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio'}));
+  var _2=useState(Object.assign({token:getToken(),pdfrepo:getPdfRepo()},profile||{nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio'}));
   var form=_2[0];var setForm=_2[1];
   function set(k,v){setForm(function(prev){var u=Object.assign({},prev);u[k]=v;return u;});}
   function pickTheme(t){applyTheme(t);setThemeId(t.id);}
@@ -499,17 +481,6 @@ function Settings(p){
       )
     ),
     h('div',{style:{height:1,background:BORD,marginBottom:20}}),
-    h(Lbl,null,'AI – Gemini API Key'),
-    h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
-      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Gemini 2.5 Flash – Gratuito'),
-      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Usata per analisi PDF in Corpo & Nutrizione. Crea la chiave gratis su aistudio.google.com/apikey'),
-      h('input',{type:'password',value:form.gkey||'',onChange:function(e){set('gkey',e.target.value);},placeholder:'AIza...',style:Object.assign({},inp,{marginBottom:0,fontFamily:"'Roboto Mono',monospace",fontSize:13})}),
-      (form.gkey||getGKey())&&h('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:6}},
-        h('div',{style:{width:7,height:7,borderRadius:'50%',background:'#22C55E'}}),
-        h('span',{style:{fontSize:11,color:MUTED}},'API key Gemini configurata ✓')
-      )
-    ),
-    h('div',{style:{height:1,background:BORD,marginBottom:20}}),
     h(Lbl,null,'Profilo personale'),
     h('input',{value:form.nome||'',onChange:function(e){set('nome',e.target.value);},placeholder:'Il tuo nome',style:inp}),
     h(Lbl,null,'Data di nascita'),
@@ -534,7 +505,7 @@ function Settings(p){
         return h('button',{key:v,onClick:function(){set('livello',v);},style:{padding:'7px 12px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer'}},v);
       })
     ),
-    h(Btn,{full:true,onClick:function(){if(form.token)saveToken(form.token);if(form.gkey)saveGKey(form.gkey);if(form.pdfrepo!==undefined)savePdfRepo(form.pdfrepo.trim());saveProfile(form);onProfile(form);go('home');}},'Salva')
+    h(Btn,{full:true,onClick:function(){if(form.token)saveToken(form.token);if(form.pdfrepo!==undefined)savePdfRepo(form.pdfrepo.trim());saveProfile(form);onProfile(form);go('home');}},'Salva')
   );
 }
 
@@ -1357,65 +1328,17 @@ function EsDetail(p){
 /* ── scheda v ── */
 function SchedaV(p){
   var schede=p.schede,setSch=p.setSch,go=p.go;
-  var _1=useState(false);var importing=_1[0];var setImporting=_1[1];
-  var _2=useState('');var importErr=_2[0];var setImportErr=_2[1];
-  var fileRef=useRef(null);
-  function onPdfFile(e){
-    var file=e.target.files&&e.target.files[0];
-    if(!file)return;
-    e.target.value='';
-    setImporting(true);setImportErr('');
-    var r=new FileReader();
-    r.onerror=function(){setImportErr('Lettura file fallita — riprova');setImporting(false);};
-    r.onload=function(){
-      var result=r.result;var b64;
-      if(typeof result==='string'){b64=result.indexOf(',')>=0?result.split(',')[1]:result;}
-      else{var bytes=new Uint8Array(result);var binary='';for(var i=0;i<bytes.byteLength;i++){binary+=String.fromCharCode(bytes[i]);}b64=btoa(binary);}
-      var sys='Sei un personal trainer esperto. Analizza questa scheda di allenamento PDF e restituisci SOLO un JSON valido, senza markdown, senza backtick, senza testo aggiuntivo. Schema: {"nome":"nome scheda","blocchi":[{"nome":"nome giorno","es":[{"nome":"nome esercizio","tipo":"standard","gr":"gruppo muscolare","sets":3,"reps":"10","rec":90,"note":"","progressione":[],"durata":10,"intensita":"Media"}]}]}. Regole: tipo può essere standard, progressivo, riscaldamento. Se ci sono progressioni settimanali (es w1 3x6 w2 4x6) usa tipo progressivo e compila progressione come array [{sets:N,reps:"N"}] per ogni settimana. Per tapis roulant/circonduzioni usa tipo riscaldamento con durata in minuti. rec è in secondi (es 2 minuti = 120). Includi tutti i blocchi/giorni trovati.';
-      fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({system_instruction:{parts:[{text:sys}]},contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:b64}},{text:'Analizza questa scheda PT e restituisci il JSON.'}]}]})
-      }).then(function(resp){return resp.json();}).then(function(res2){
-        if(res2.error){throw new Error(res2.error.message||'Gemini error');}
-        var txt=res2.candidates&&res2.candidates[0]&&res2.candidates[0].content&&res2.candidates[0].content.parts[0]&&res2.candidates[0].content.parts[0].text||'';
-        var clean=txt.replace(/```json|```/g,'').trim();
-        var parsed=JSON.parse(clean);
-        var newScheda={id:uid(),nome:parsed.nome||file.name.replace('.pdf',''),attiva:false,data:new Date().toISOString(),
-          blocchi:(parsed.blocchi||[]).map(function(bl){return {id:uid(),nome:bl.nome||'Blocco',es:(bl.es||[]).map(function(ex){
-            var tipo=ex.tipo||'standard';
-            var base={id:uid(),nome:ex.nome||'',tipo:tipo,gr:ex.gr||'',note:ex.note||''};
-            if(tipo==='riscaldamento')return Object.assign(base,{durata:ex.durata||10,intensita:ex.intensita||'Media',recSet:0,recEs:0,rec:0});
-            if(tipo==='progressivo'){var prog=(ex.progressione&&ex.progressione.length)?ex.progressione:[{sets:ex.sets||3,reps:String(ex.reps||'6')}];return Object.assign(base,{peso:0,recSet:ex.rec||90,recEs:60,rec:ex.rec||90,progressione:prog,serie:prog[0]?prog[0].sets:3,reps:prog[0]?String(prog[0].reps):'6'});}
-            return Object.assign(base,{sets:ex.sets||3,serie:ex.sets||3,reps:String(ex.reps||'10'),peso:0,recSet:ex.rec||90,recEs:60,rec:ex.rec||90});
-          })};})
-        };
-        setSch(schede.map(function(x){return Object.assign({},x,{attiva:false});}).concat([newScheda]));
-        setImporting(false);
-      }).catch(function(err){setImportErr('Errore analisi: '+(err.message||'riprova'));setImporting(false);});
-    };
-    try{r.readAsArrayBuffer(file);}catch(e2){r.readAsDataURL(file);}
-  }
   return h('div',{style:{padding:'24px 16px'}},
-    h('input',{ref:fileRef,type:'file',accept:'.pdf,application/pdf',onChange:onPdfFile,style:{display:'none'}}),
     h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}},
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em'}},'Schede PT'),
-      h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}},
-        h(Btn,{onClick:function(){if(!getGKey()){alert('Configura prima la Gemini API key nelle Impostazioni');return;}if(fileRef.current)fileRef.current.click();},sec:true,sm:true,style:{opacity:importing?0.5:1}},importing?'Analisi…':'📄 PDF'),
-h(Btn,{onClick:function(){go('nuova',{});},sec:true,sm:true},'+ Nuova')
-      )
+      h(Btn,{onClick:function(){go('nuova',{});},sec:true,sm:true},'+ Nuova')
     ),
-    importing&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:'10px 14px',marginBottom:12,display:'flex',alignItems:'center',gap:8}},
-      h('div',{style:{width:7,height:7,borderRadius:'50%',background:ACC}}),
-      h('span',{style:{fontSize:12,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'Gemini sta analizzando la scheda PDF…')
-    ),
-    importErr&&h('div',{style:{fontSize:11,color:'#EF4444',marginBottom:12,padding:'8px 12px',background:'rgba(239,68,68,0.08)',borderRadius:8,border:'1px solid rgba(239,68,68,0.2)'}},importErr),
-    schede.length===0&&!importing&&h('div',{style:{textAlign:'center',padding:'40px 0'}},
+    schede.length===0&&h('div',{style:{textAlign:'center',padding:'40px 0'}},
       h(Icon,{n:'scheda',sz:40,c:MUTED,style:{margin:'0 auto 16px'}}),
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,marginBottom:8}},'Nessuna scheda'),
-      h('div',{style:{color:MUTED,marginBottom:20,lineHeight:1.7}},'Carica il PDF del tuo PT\no creala manualmente'),
+      h('div',{style:{color:MUTED,marginBottom:20,lineHeight:1.7}},'Crea una scheda manualmente'),
       h('div',{style:{display:'flex',gap:8,justifyContent:'center'}},
-        h(Btn,{onClick:function(){if(fileRef.current)fileRef.current.click();}},'📄 Importa PDF'),
-        h(Btn,{sec:true,onClick:function(){go('nuova',{});}},'+ Manuale')
+        h(Btn,{onClick:function(){go('nuova',{});}},'+ Crea scheda')
       )
     ),
     schede.map(function(s,idx){
@@ -1608,73 +1531,44 @@ var CORPO_KEY='gymtracker_corpo';
 function loadCorpo(){try{return JSON.parse(localStorage.getItem(CORPO_KEY))||{reports:[]};}catch(e){return{reports:[]};}}
 function saveCorpo(d){try{localStorage.setItem(CORPO_KEY,JSON.stringify(d));}catch(e){}}
 
-function MCard(p){
-  return h('div',{style:{background:SURF2,borderRadius:12,padding:'11px 8px',textAlign:'center'}},
-    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:p.big?30:22,letterSpacing:'0.02em',color:p.c||ACC,lineHeight:1}},p.val||'—'),
-    p.unit&&h('span',{style:{fontSize:8,color:p.c||ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}},' '+p.unit),
-    h('div',{style:{fontSize:8,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:3}},p.label)
-  );
-}
 
 function CorpoNutri(p){
-  var go=p.go,sessions=p.sessions||[];
+  var go=p.go;
   var _d=useState(function(){return loadCorpo();});var data=_d[0];var setData=_d[1];
-  var _msgs=useState([]);var msgs=_msgs[0];var setMsgs=_msgs[1];
-  var _inp=useState('');var chatInp=_inp[0];var setChatInp=_inp[1];
-  var _loading=useState(false);var loading=_loading[0];var setLoading=_loading[1];
-  var _uploading=useState(null);var uploading=_uploading[0];var setUploading=_uploading[1];
+  var _uploading=useState(false);var uploading=_uploading[0];var setUploading=_uploading[1];
   var _err=useState('');var uploadErr=_err[0];var setUploadErr=_err[1];
-  var _pending=useState(null);var pendingReport=_pending[0];var setPendingReport=_pending[1];
+  var _pending=useState(null);var pendingFile=_pending[0];var setPendingFile=_pending[1];
   var _pendDate=useState('');var pendDate=_pendDate[0];var setPendDate=_pendDate[1];
   var _pendLabel=useState('');var pendLabel=_pendLabel[0];var setPendLabel=_pendLabel[1];
-  var _pendMet=useState({});var pendingMetrics=_pendMet[0];var setPendingMetrics=_pendMet[1];
   var _pdfUp=useState(null);var pdfUploading=_pdfUp[0];var setPdfUploading=_pdfUp[1];
   var _pdfLoad=useState(null);var pdfLoadingId=_pdfLoad[0];var setPdfLoadingId=_pdfLoad[1];
-  var BC_FIELDS={peso:'Peso (kg)',massaMagra:'Massa Magra (kg)',massaGrassa:'Massa Grassa (kg)',percGrasso:'% Grasso',acquaCorporea:'Acqua (L)',metabolismoBasale:'BMR (kcal)',BMI:'BMI',massaOssea:'Massa Ossea (kg)',muscolo:'Muscolo (kg)'};
-  var NUT_FIELDS={calorie:'Calorie (kcal)',proteine:'Proteine (g)',carboidrati:'Carboidrati (g)',grassi:'Grassi (g)',fibre:'Fibre (g)',acqua:'Acqua (L)'};
-  var BC_EMPTY={peso:null,massaMagra:null,massaGrassa:null,percGrasso:null,acquaCorporea:null,metabolismoBasale:null,BMI:null,massaOssea:null,muscolo:null};
-  var NUT_EMPTY={calorie:null,proteine:null,carboidrati:null,grassi:null,fibre:null,acqua:null};
   var fileRef=useRef(null);
-  var pendingType=useRef('body_comp');
   var pendingPdfRef=useRef(null);
-  var chatEndRef=useRef(null);
   var _viewPdf=useState(null);var viewingPdf=_viewPdf[0];var setViewingPdf=_viewPdf[1];
 
   var reports=(data.reports||[]).slice().sort(function(a,b){return new Date(b.reportDate)-new Date(a.reportDate);});
-  var latest=reports[0]||null;
-  var m=latest&&latest.analysis&&latest.analysis.metrics||{};
 
   function persist(newData){setData(newData);saveCorpo(newData);}
   function updateReport(id,patch){setData(function(prev){var u={reports:(prev.reports||[]).map(function(r){return r.id===id?Object.assign({},r,patch):r;})};saveCorpo(u);return u;});}
-  function triggerUpload(type){pendingType.current=type;if(fileRef.current)fileRef.current.click();}
-
-  function fmtM(v,dec){if(v===null||v===undefined||v==='')return '—';var n=parseFloat(v);return isNaN(n)?String(v):(dec?n.toFixed(dec):String(Math.round(n)));}
 
   function confirmSave(){
-    if(!pendingReport)return;
-    var finalReport=Object.assign({},pendingReport,{
-      reportDate:pendDate||new Date().toISOString().slice(0,10),
-      label:pendLabel.trim()||undefined,
-      analysis:Object.assign({},pendingReport.analysis,{metrics:pendingMetrics}),
-      hasPdf:!!pendingPdfRef.current,
-      pdfStorage:'local'
-    });
-    var existing=data.reports||[];
-    persist({reports:existing.concat([finalReport])});
+    if(!pendingFile)return;
+    var report={id:uid(),date:new Date().toISOString(),reportDate:pendDate||new Date().toISOString().slice(0,10),label:pendLabel.trim()||undefined,filename:pendingFile.filename,hasPdf:true,pdfStorage:'local'};
+    persist({reports:(data.reports||[]).concat([report])});
     var b64=pendingPdfRef.current;
     pendingPdfRef.current=null;
-    setPendingReport(null);setPendDate('');setPendLabel('');setPendingMetrics({});
-    if(!b64||!finalReport.hasPdf)return;
+    setPendingFile(null);setPendDate('');setPendLabel('');
+    if(!b64)return;
     var token=getToken();var repo=getPdfRepo();
     if(token&&repo){
-      setPdfUploading(finalReport.id);
-      uploadPdfGithub(token,repo,finalReport.id,b64).then(function(sha){
-        if(sha){updateReport(finalReport.id,{pdfStorage:'github',pdfGithubSha:sha,pdfGithubRepo:repo});}
-        else{savePdfLocal(finalReport.id,b64);}
+      setPdfUploading(report.id);
+      uploadPdfGithub(token,repo,report.id,b64).then(function(sha){
+        if(sha){updateReport(report.id,{pdfStorage:'github',pdfGithubSha:sha,pdfGithubRepo:repo});}
+        else{savePdfLocal(report.id,b64);}
         setPdfUploading(null);
-      }).catch(function(){savePdfLocal(finalReport.id,b64);setPdfUploading(null);});
+      }).catch(function(){savePdfLocal(report.id,b64);setPdfUploading(null);});
     } else {
-      savePdfLocal(finalReport.id,b64);
+      savePdfLocal(report.id,b64);
     }
   }
 
@@ -1682,162 +1576,56 @@ function CorpoNutri(p){
     var file=e.target.files&&e.target.files[0];
     if(!file)return;
     e.target.value='';
-    var type=pendingType.current;
-    setUploading(type);setUploadErr('');
+    setUploading(true);setUploadErr('');
     var r=new FileReader();
-    r.onerror=function(){setUploadErr('Lettura file fallita — riprova o usa un altro browser');setUploading(null);};
+    r.onerror=function(){setUploadErr('Lettura file fallita — riprova o usa un altro browser');setUploading(false);};
     r.onload=function(){
       var result=r.result;
       var b64;
       if(typeof result==='string'){
         b64=result.indexOf(',')>=0?result.split(',')[1]:result;
       } else {
-        /* ArrayBuffer fallback per iOS Safari */
         var bytes=new Uint8Array(result);
         var binary='';
         for(var i=0;i<bytes.byteLength;i++){binary+=String.fromCharCode(bytes[i]);}
         b64=btoa(binary);
       }
-      var sys=type==='body_comp'
-        ?'Sei un esperto di composizione corporea. Analizza il report PDF (InBody, DEXA, BIA, Bod Pod o altro) leggendo OGNI pagina incluse note, appendici e tabelle secondarie. NON inventare valori: se assente lascia null. Campi da estrarre:\n- peso: peso corporeo totale kg (peso/weight/body weight/Wt/massa totale)\n- massaMagra: massa libera da grasso kg (FFM/LBM/lean body mass/lean mass/massa magra/fat-free mass — NON confondere con muscolo)\n- massaGrassa: massa grassa kg (FM/fat mass/massa grassa/body fat mass)\n- percGrasso: % grasso corporeo (PBF/% BF/body fat%/% grasso/FM%); se assente calcolala: (massaGrassa/peso)*100 arrotondato a 1 decimale\n- acquaCorporea: acqua corporea totale litri (TBW/total body water/acqua corporea/ICW+ECW)\n- metabolismoBasale: metabolismo basale kcal/die (BMR/RMR/metabolismo basale/basal metabolic rate; se in kJ dividi per 4.184)\n- BMI: indice massa corporea (BMI/body mass index/IMC)\n- massaOssea: massa ossea / contenuto minerale osseo in kg. ATTENZIONE: negli InBody questo campo si chiama esattamente "Mineral" ed è la quarta voce del breakdown corporeo (Body Water + Protein + Mineral + Body Fat = Weight). Cerca anche: bone mass, massa ossea, BMC, bone mineral content, bone mineral mass, ossea, minerals, contenuto minerale. Di solito è un valore piccolo tra 2 e 5 kg. Cerca in TUTTE le pagine.\n- muscolo: massa muscolare scheletrica kg (SMM, skeletal muscle mass, muscolo scheletrico, BCM, lean muscle, appendicular lean mass)\nHighlights: valori fuori range, note cliniche, tendenze importanti. Sommario: 1-2 frasi sullo stato di composizione corporea.\nRispondi SOLO JSON valido, zero testo extra, zero markdown:\n{"tipo":"body_comp","data_report":"YYYY-MM-DD","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
-        :'Sei un nutrizionista esperto. Analizza il PDF leggendo OGNI pagina. Il documento può essere un piano alimentare strutturato, un diario o un referto. NON inventare valori: se assente lascia null.\nSe PIANO ALIMENTARE: cerca la tabella riepilogativa dei macro totali giornalieri; se assente somma tutti i pasti del giorno tipo.\nSe DIARIO: calcola la media giornaliera.\nCampi:\n- calorie: kcal totali/die (calorie/kcal/energia/energy/fabbisogno)\n- proteine: g proteine/die (proteine/protein/P/prot)\n- carboidrati: g carboidrati/die (carboidrati/carbo/CHO/glucidi/C)\n- grassi: g grassi/die (grassi/lipidi/fat/G/lipids)\n- fibre: g fibre/die (fibre/fiber/dietary fiber)\n- acqua: litri acqua/die consigliati (acqua/water/idratazione)\ndata_report: data piano/referto YYYY-MM-DD. Highlights: note nutrizionista, pasti liberi, variazioni weekend, integratori. Sommario: 1-2 frasi.\nRispondi SOLO JSON valido, zero markdown:\n{"tipo":"nutrition","data_report":"YYYY-MM-DD","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
-      fetchGeminiWithRetry('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({system_instruction:{parts:[{text:sys}]},contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:b64}},{text:'Analizza e restituisci i dati nel formato JSON richiesto.'}]}]})
-      }).then(function(result){
-        if(result.error){throw new Error(result.error.message||'Gemini error');}
-        var txt=result.candidates&&result.candidates[0]&&result.candidates[0].content&&result.candidates[0].content.parts[0]&&result.candidates[0].content.parts[0].text||'';
-        var clean=txt.replace(/```json[\s\S]*?```|```[\s\S]*?```|```json|```/g,'').trim();
-        var parsed=JSON.parse(clean);
-        /* ── helper: estrae testo da qualsiasi valore ── */
-        function extractStr(v){
-          if(v===null||v===undefined)return '';
-          if(typeof v==='string')return v.trim();
-          if(typeof v==='number')return String(v);
-          if(typeof v==='object'){
-            /* prova le chiavi più comuni usate da Gemini */
-            var keys=['text','content','value','description','highlight','evidence','note','item','message','str','label'];
-            for(var ki=0;ki<keys.length;ki++){if(typeof v[keys[ki]]==='string'&&v[keys[ki]].trim())return v[keys[ki]].trim();}
-            /* fallback: primo valore stringa trovato */
-            var vals=Object.values(v);
-            for(var vi=0;vi<vals.length;vi++){if(typeof vals[vi]==='string'&&vals[vi].trim())return vals[vi].trim();}
-          }
-          return '';
-        }
-        /* ── sanitize: ogni campo metriche → numero o null ── */
-        var rawM=parsed.metriche||{};
-        var sanitizedM={};
-        Object.keys(rawM).forEach(function(k){var v=rawM[k];sanitizedM[k]=(v===null||v===undefined)?null:(typeof v==='object'?null:(isNaN(parseFloat(v))?null:parseFloat(v)));});
-        /* ── sanitize highlights → array di stringhe ── */
-        var rawH=parsed.highlights;
-        var sanitizedH=[];
-        if(typeof rawH==='string'&&rawH.trim()){sanitizedH=[rawH.trim()];}
-        else if(Array.isArray(rawH)){sanitizedH=rawH.map(extractStr).filter(Boolean);}
-        /* ── sanitize sommario → stringa ── */
-        var sommario=extractStr(parsed.sommario);
-        /* ── sanitize data ── */
-        var extracted=typeof parsed.data_report==='string'?parsed.data_report.trim():'';
-        var emptyFields=type==='body_comp'?BC_EMPTY:NUT_EMPTY;
-        var mergedMetrics=Object.assign({},emptyFields,sanitizedM);
-        var draft={id:uid(),date:new Date().toISOString(),reportDate:extracted||new Date().toISOString().slice(0,10),type:type,filename:file.name,analysis:{sommario:sommario,metrics:mergedMetrics,highlights:sanitizedH},hasPdf:true};
-        pendingPdfRef.current=b64;
-        setPendingReport(draft);
-        setPendingMetrics(mergedMetrics);
-        setPendDate(extracted||'');
-        setPendLabel('');
-        setUploading(null);
-      }).catch(function(err){
-        setUploadErr('Errore analisi: '+(err.message||'riprova'));
-        setUploading(null);
-      });
+      pendingPdfRef.current=b64;
+      setPendingFile({filename:file.name});
+      setPendDate(new Date().toISOString().slice(0,10));
+      setPendLabel('');
+      setUploading(false);
     };
     try{r.readAsArrayBuffer(file);}catch(e){r.readAsDataURL(file);}
   }
-
-  function sendChat(){
-    var msg=chatInp.trim();
-    if(!msg||loading)return;
-    setChatInp('');
-    var userMsg={role:'user',content:msg};
-    var newMsgs=msgs.concat([userMsg]);
-    setMsgs(newMsgs);
-    setLoading(true);
-    var ctx='Dati utente disponibili:\n';
-    reports.forEach(function(rep){
-      ctx+='['+rep.type.replace('_',' ')+' · '+rep.reportDate+']: '+JSON.stringify(rep.analysis.metrics)+'\nSintesi: '+(rep.analysis.sommario||'')+'\n';
-      if(rep.analysis.highlights&&rep.analysis.highlights.length)ctx+='Note: '+rep.analysis.highlights.join('; ')+'\n';
-    });
-    if(sessions.length>0)ctx+='Sessioni di allenamento registrate: '+sessions.length+' totali\n';
-    fetchGeminiWithRetry('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({system_instruction:{parts:[{text:'Sei un assistente esperto di composizione corporea e nutrizione sportiva. Rispondi sempre in italiano, in modo pratico e personalizzato. Hai accesso ai seguenti dati:\n'+ctx+'Se mancano dati per rispondere con precisione, dillo esplicitamente.'}]},
-        contents:newMsgs.map(function(x){return{role:x.role==='assistant'?'model':'user',parts:[{text:x.content}]};})
-      })
-    }).then(function(result){
-      if(result.error){throw new Error(result.error.message||'Gemini error');}
-      var aiText=result.candidates&&result.candidates[0]&&result.candidates[0].content&&result.candidates[0].content.parts[0]&&result.candidates[0].content.parts[0].text||'Errore nella risposta. Riprova.';
-      setMsgs(function(prev){return prev.concat([{role:'assistant',content:aiText}]);});
-      setLoading(false);
-    }).catch(function(){
-      setMsgs(function(prev){return prev.concat([{role:'assistant',content:'Errore nella risposta. Riprova.'}]);});
-      setLoading(false);
-    });
-  }
-
-  useEffect(function(){if(chatEndRef.current)chatEndRef.current.scrollIntoView({behavior:'smooth'});},[msgs,loading]);
-
-  var TYPE_COLOR={body_comp:ACC,nutrition:'#4ADE80'};
-  var TYPE_LABEL={body_comp:'Body Comp',nutrition:'Nutrizione'};
 
   return h('div',{style:{paddingBottom:100}},
     h('input',{ref:fileRef,type:'file',accept:'.pdf,application/pdf',onChange:onFile,style:{display:'none'}}),
     /* ─ PDF Viewer modal ─ */
     viewingPdf&&h(PdfViewer,{url:viewingPdf,onClose:function(){URL.revokeObjectURL(viewingPdf);setViewingPdf(null);}}),
     /* ─ Confirmation sheet ─ */
-    pendingReport&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}},
+    pendingFile&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}},
       h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'0 0 40px',maxHeight:'88vh',overflowY:'auto'}},
         h('div',{style:{padding:'20px 16px 16px',borderBottom:'0.5px solid '+BORD}},
           h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}},
-            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC}},'Analisi completata'),
-            h('button',{onClick:function(){setPendingReport(null);setPendingMetrics({});},style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:18,c:MUTED}))
+            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC}},'Salva file'),
+            h('button',{onClick:function(){setPendingFile(null);setPendDate('');setPendLabel('');pendingPdfRef.current=null;},style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:18,c:MUTED}))
           ),
-          h('div',{style:{fontSize:11,color:MUTED,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},pendingReport.filename)
+          h('div',{style:{fontSize:11,color:MUTED,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},pendingFile.filename)
         ),
         h('div',{style:{padding:'16px'}},
-          /* Date field — most important */
           h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:'14px',marginBottom:16}},
-            h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:8}},'DATA DEL REPORT'),
-            h('div',{style:{fontSize:12,color:MUTED,marginBottom:10,lineHeight:1.5}},pendDate?'L\'AI ha trovato questa data nel PDF. Confermala o correggila.':'L\'AI non ha trovato una data nel PDF. Inseriscila tu.'),
+            h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:8}},'DATA DEL FILE'),
             h('input',{type:'date',value:pendDate,onChange:function(e){setPendDate(e.target.value);},style:{width:'100%',background:SURF2,border:'1px solid '+(pendDate?ACC3:BORD),borderRadius:8,padding:'11px 12px',color:TEXT,fontSize:16,fontFamily:"'Roboto Mono',monospace",cursor:'pointer'}}),
             !pendDate&&h('div',{style:{fontSize:11,color:'#EF4444',marginTop:6}},'⚠ Imposta la data prima di salvare')
           ),
-          /* Optional label */
           h('div',{style:{marginBottom:16}},
             h(Lbl,null,'Etichetta (opzionale)'),
             h('input',{type:'text',value:pendLabel,onChange:function(e){setPendLabel(e.target.value);},placeholder:'es. Gennaio 2025, Post-cut, Inizio bulk…',style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14}})
           ),
-          /* Metrics editable */
-          pendingReport.analysis&&h('div',{style:{marginBottom:16}},
-            h(Lbl,null,'Dati estratti — modifica se necessario'),
-            h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-              Object.entries(pendingReport.type==='body_comp'?BC_FIELDS:NUT_FIELDS).map(function(kv){
-                var key=kv[0];var label=kv[1];
-                var val=pendingMetrics[key];
-                return h('div',{key:key},
-                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}},label),
-                  h('input',{type:'number',step:'any',value:val===null||val===undefined?'':val,
-                    placeholder:'—',
-                    onChange:function(e){var v=e.target.value===''?null:parseFloat(e.target.value);setPendingMetrics(function(prev){var u=Object.assign({},prev);u[key]=v;return u;});},
-                    style:{width:'100%',background:val!==null&&val!==undefined?SURF2:'rgba(239,68,68,0.06)',border:'1px solid '+(val!==null&&val!==undefined?BORD:'rgba(239,68,68,0.25)'),borderRadius:8,padding:'8px 10px',color:val!==null&&val!==undefined?ACC:MUTED,fontSize:14,fontFamily:"'Roboto Mono',monospace",fontWeight:700,textAlign:'center'}
-                  })
-                );
-              })
-            )
-          ),
-          /* Save / discard */
-          h(Btn,{full:true,onClick:confirmSave,style:{opacity:pendDate?1:0.45,pointerEvents:pendDate?'auto':'none'}},'Salva report'),
+          h(Btn,{full:true,onClick:confirmSave,style:{opacity:pendDate?1:0.45,pointerEvents:pendDate?'auto':'none'}},'Salva'),
           h('div',{style:{height:8}}),
-          h(Btn,{full:true,sec:true,onClick:function(){setPendingReport(null);setPendDate('');setPendingMetrics({});}},'Annulla')
+          h(Btn,{full:true,sec:true,onClick:function(){setPendingFile(null);setPendDate('');setPendLabel('');pendingPdfRef.current=null;}},'Annulla')
         )
       )
     ),
@@ -1845,179 +1633,88 @@ function CorpoNutri(p){
     h('div',{style:{padding:'24px 16px 14px',background:SURF,borderBottom:'0.5px solid '+BORD,position:'sticky',top:0,zIndex:10}},
       h('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}},
         h('div',null,
-          h('div',{style:{fontSize:11,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}},'Analisi'),
-          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.03em',lineHeight:1}},'Corpo & Nutrizione')
+          h('div',{style:{fontSize:11,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}},'Archivio'),
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.03em',lineHeight:1}},'I miei file')
         ),
         uploading&&h('div',{style:{display:'flex',alignItems:'center',gap:5,background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:'6px 10px'}},
-          h('div',{style:{width:6,height:6,borderRadius:'50%',background:ACC,animation:'pulse 1s infinite'}}),
-          h('span',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},uploading==='body_comp'?'Analisi body comp…':'Analisi nutrizione…')
+          h('div',{style:{width:6,height:6,borderRadius:'50%',background:ACC}}),
+          h('span',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'Caricamento…')
         )
+
       ),
       h('div',{style:{display:'flex',gap:6}},
-        h('button',{onClick:function(){triggerUpload('body_comp');},disabled:!!uploading,style:{flex:1,padding:'9px 6px',borderRadius:10,border:'1px solid '+ACC3,background:ACC5,color:ACC,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.05em',opacity:uploading?0.6:1}},'+ Body Comp'),
-        h('button',{onClick:function(){triggerUpload('nutrition');},disabled:!!uploading,style:{flex:1,padding:'9px 6px',borderRadius:10,border:'1px solid '+BORD,background:'transparent',color:TEXT,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.05em',opacity:uploading?0.6:1}},'+ Nutrizione')
+      h('button',{onClick:function(){if(fileRef.current)fileRef.current.click();},disabled:!!uploading,style:{flex:1,padding:'9px 6px',borderRadius:10,border:'1px solid '+ACC3,background:ACC5,color:ACC,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.05em',opacity:uploading?0.6:1}},'+ Carica PDF')
       ),
       uploadErr&&h('div',{style:{fontSize:11,color:'#EF4444',marginTop:8,padding:'6px 10px',background:'rgba(239,68,68,0.08)',borderRadius:8,border:'1px solid rgba(239,68,68,0.2)'}},uploadErr)
     ),
     /* ─ Empty state ─ */
     reports.length===0&&!uploading&&h('div',{style:{padding:'60px 20px',textAlign:'center'}},
-      h('div',{style:{fontSize:56,marginBottom:16}},'📊'),
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,marginBottom:8,letterSpacing:'0.03em'}},'Nessun report ancora'),
-      h('div',{style:{fontSize:13,color:MUTED,lineHeight:1.8,marginBottom:32}},'Carica il tuo report di body composition\n(InBody, DEXA, BIA…) o la tua scheda\nalimentare in PDF per iniziare.'),
-      h('div',{style:{display:'flex',flexDirection:'column',gap:8,maxWidth:280,margin:'0 auto'}},
-        h(Btn,{full:true,onClick:function(){triggerUpload('body_comp');}},'📈 Carica Body Composition'),
-        h('div',{style:{height:4}}),
-        h(Btn,{full:true,sec:true,onClick:function(){triggerUpload('nutrition');}},'🥗 Carica Scheda Nutrizione')
+      h('div',{style:{fontSize:56,marginBottom:16}},'📁'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,marginBottom:8,letterSpacing:'0.03em'}},'Nessun file ancora'),
+      h('div',{style:{fontSize:13,color:MUTED,lineHeight:1.8,marginBottom:32}},'Carica i tuoi PDF per tenerli\narchivati e visualizzarli in qualsiasi momento.'),
+      h('div',{style:{maxWidth:280,margin:'0 auto'}},
+        h(Btn,{full:true,onClick:function(){if(fileRef.current)fileRef.current.click();}},'📄 Carica PDF')
       )
     ),
     /* ─ Loading state ─ */
     uploading&&reports.length===0&&h('div',{style:{padding:'80px 24px',textAlign:'center'}},
-      h('div',{style:{fontSize:40,marginBottom:14}},'⚙️'),
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,color:ACC,letterSpacing:'0.03em',marginBottom:6}},'Analisi in corso…'),
-      h('div',{style:{fontSize:13,color:MUTED}},'Estraggo i dati dal PDF, attendi.')
+      h('div',{style:{fontSize:40,marginBottom:14}},'⏳'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,color:ACC,letterSpacing:'0.03em',marginBottom:6}},'Caricamento…'),
+      h('div',{style:{fontSize:13,color:MUTED}},'Attendi un momento.')
     ),
-    /* ─ Dashboard ─ */
-    reports.length>0&&h('div',{style:{padding:'16px'}},
-      /* Latest metrics */
-      latest&&h('div',null,
-        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
-          h(Lbl,null,'Ultimo report · '+latest.reportDate),
-          h('span',{style:{fontSize:9,color:TYPE_COLOR[latest.type]||ACC,background:(TYPE_COLOR[latest.type]||ACC)+'18',padding:'3px 9px',borderRadius:20,border:'1px solid '+(TYPE_COLOR[latest.type]||ACC)+'44',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},TYPE_LABEL[latest.type]||latest.type)
-        ),
-        /* Body comp metrics grid */
-        latest.type==='body_comp'&&h('div',null,
-          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:6}},
-            h(MCard,{val:fmtM(m.peso,1),unit:'kg',label:'Peso',big:true}),
-            h(MCard,{val:fmtM(m.massaMagra,1),unit:'kg',label:'Massa Magra'}),
-            h(MCard,{val:fmtM(m.percGrasso,1),unit:'%',label:'% Grasso'})
-          ),
-          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:6}},
-            h(MCard,{val:fmtM(m.massaGrassa,1),unit:'kg',label:'Massa Grassa'}),
-            h(MCard,{val:fmtM(m.acquaCorporea,1),unit:'kg',label:'Acqua'}),
-            h(MCard,{val:fmtM(m.metabolismoBasale),unit:'kcal',label:'Metab. Basale'})
-          ),
-          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:14}},
-            h(MCard,{val:fmtM(m.BMI,1),unit:'',label:'BMI'}),
-            h(MCard,{val:fmtM(m.massaOssea,2),unit:'kg',label:'Massa Ossea'}),
-            h(MCard,{val:fmtM(m.muscolo,1),unit:'kg',label:'Muscolo'})
-          )
-        ),
-        /* Nutrition metrics grid */
-        latest.type==='nutrition'&&h('div',null,
-          h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}},
-            h(MCard,{val:fmtM(m.calorie),unit:'kcal',label:'Calorie/die',big:true,c:'#4ADE80'}),
-            h(MCard,{val:fmtM(m.proteine),unit:'g',label:'Proteine',c:'#4ADE80'})
-          ),
-          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:14}},
-            h(MCard,{val:fmtM(m.carboidrati),unit:'g',label:'Carbo',c:'#4ADE80'}),
-            h(MCard,{val:fmtM(m.grassi),unit:'g',label:'Grassi',c:'#4ADE80'}),
-            h(MCard,{val:fmtM(m.fibre),unit:'g',label:'Fibre',c:'#4ADE80'})
-          )
-        ),
-        /* Highlights */
-        latest.analysis.highlights&&latest.analysis.highlights.length>0&&h('div',{style:{background:SURF2,borderRadius:12,padding:'12px 14px',marginBottom:12}},
-          h(Lbl,null,'Evidenze chiave'),
-          latest.analysis.highlights.map(function(hl,i){
-            var hlStr=typeof hl==='string'?hl.trim():(function(){if(!hl)return '';var keys=['text','content','value','description','highlight','evidence','note','item','message'];for(var ki=0;ki<keys.length;ki++){if(typeof hl[keys[ki]]==='string'&&hl[keys[ki]].trim())return hl[keys[ki]].trim();}var v=Object.values(hl).find(function(x){return typeof x==='string'&&x.trim();});return v?v.trim():'';})();
-            if(!hlStr)return null;
-            return h('div',{key:i,style:{display:'flex',gap:8,marginBottom:i<latest.analysis.highlights.length-1?6:0,alignItems:'flex-start'}},
-              h('span',{style:{color:ACC,flexShrink:0,fontSize:13}},'·'),
-              h('div',{style:{fontSize:12,lineHeight:1.6}},hlStr)
-            );
-          })
-        ),
-        /* Summary */
-        latest.analysis.sommario&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:'12px 14px',marginBottom:16}},
-          h(Lbl,null,'Sintesi'),
-          h('div',{style:{fontSize:13,lineHeight:1.7}},(function(){var s=latest.analysis.sommario;if(typeof s==='string')return s;if(s&&typeof s==='object'){var keys=['text','content','value','description'];for(var ki=0;ki<keys.length;ki++){if(typeof s[keys[ki]]==='string')return s[keys[ki]];}return Object.values(s).find(function(x){return typeof x==='string';})||'';}return '';})())
-        )
+    /* ─ All files list ─ */
+    reports.length>0&&h('div',{style:{padding:'0 16px'}},
+      h(Lbl,null,'File caricati ('+reports.length+')'),
+      pdfUploading&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:'8px 12px',marginBottom:10,display:'flex',alignItems:'center',gap:8}},
+        h('div',{style:{width:6,height:6,borderRadius:'50%',background:ACC}}),
+        h('span',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'Upload PDF su GitHub in corso…')
       ),
-      /* ─ Chat ─ */
-      h('div',{style:{marginBottom:20}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:10}},
-          h(Icon,{n:'bulb',sz:14,c:ACC}),
-          h('div',{style:{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:12,color:ACC,textTransform:'uppercase',letterSpacing:'0.08em'}},'Analisi AI · Fai domande sui tuoi dati')
-        ),
-        msgs.length===0&&h('div',{style:{background:SURF2,borderRadius:12,padding:'12px 14px',marginBottom:10}},
-          h('div',{style:{fontSize:11,color:MUTED,marginBottom:8}},'Suggerimenti:'),
-          ['Il mio grasso corporeo è nella norma?','Come migliorare la massa magra in base al mio metabolismo?','La mia dieta supporta il tipo di allenamento che faccio?','Cosa dovrei ottimizzare per primo?'].map(function(q,i){
-            return h('button',{key:i,onClick:function(){setChatInp(q);},style:{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',marginBottom:4,background:'transparent',border:'0.5px solid '+BORD,borderRadius:8,color:TEXT,fontSize:12,cursor:'pointer',lineHeight:1.4}},q);
-          })
-        ),
-        msgs.length>0&&h('div',{style:{maxHeight:340,overflowY:'auto',marginBottom:10,display:'flex',flexDirection:'column',gap:8}},
-          msgs.map(function(msg,i){
-            var isUser=msg.role==='user';
-            return h('div',{key:i,style:{alignSelf:isUser?'flex-end':'flex-start',maxWidth:'90%',background:isUser?ACC2:SURF2,border:'0.5px solid '+(isUser?ACC3:BORD),borderRadius:isUser?'14px 14px 4px 14px':'14px 14px 14px 4px',padding:'10px 13px'}},
-              h('div',{style:{fontSize:13,lineHeight:1.65,color:isUser?ACC:TEXT,whiteSpace:'pre-wrap'}},msg.content)
-            );
-          }),
-          loading&&h('div',{style:{alignSelf:'flex-start',background:SURF2,border:'0.5px solid '+BORD,borderRadius:'14px 14px 14px 4px',padding:'10px 13px'}},
-            h('div',{style:{display:'flex',gap:4,alignItems:'center'}},
-              [0,1,2].map(function(i){return h('div',{key:i,style:{width:5,height:5,borderRadius:'50%',background:MUTED,opacity:0.6}});})
-            )
-          ),
-          h('div',{ref:chatEndRef})
-        ),
-        h('div',{style:{display:'flex',gap:8}},
-          h('input',{type:'text',value:chatInp,onChange:function(e){setChatInp(e.target.value);},onKeyDown:function(e){if(e.key==='Enter'&&!e.shiftKey)sendChat();},placeholder:'Chiedi qualcosa…',style:{flex:1,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'11px 14px',color:TEXT,fontSize:14}}),
-          h('button',{onClick:sendChat,disabled:loading||!chatInp.trim(),style:{padding:'11px 18px',borderRadius:10,border:'none',background:ACC,color:ACT,fontWeight:700,fontSize:13,cursor:'pointer',flexShrink:0,opacity:loading||!chatInp.trim()?0.5:1}},'→')
-        )
-      ),
-      /* ─ All reports list ─ */
-      reports.length>0&&h('div',null,
-        h(Lbl,null,'Report caricati ('+reports.length+')'),
-        pdfUploading&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:'8px 12px',marginBottom:10,display:'flex',alignItems:'center',gap:8}},
-          h('div',{style:{width:6,height:6,borderRadius:'50%',background:ACC}}),
-          h('span',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'Upload PDF su GitHub in corso…')
-        ),
-        reports.map(function(rep){
-          var tc=TYPE_COLOR[rep.type]||ACC;
-          var isGithub=rep.pdfStorage==='github';
-          var isLoadingThis=pdfLoadingId===rep.id;
-          function openPdf(){
-            if(isGithub){
-              var token=getToken();var repo=rep.pdfGithubRepo||getPdfRepo();
-              if(!token||!repo){alert('Configura GitHub nelle Impostazioni per aprire questo PDF.');return;}
-              setPdfLoadingId(rep.id);
-              fetchPdfGithub(token,repo,rep.id).then(function(b64){
-                if(!b64){alert('PDF non trovato su GitHub.');setPdfLoadingId(null);return;}
-                var blob=b64ToBlob(b64);var url=URL.createObjectURL(blob);
-                setViewingPdf(url);setPdfLoadingId(null);
-              }).catch(function(){alert('Errore nel caricamento del PDF da GitHub.');setPdfLoadingId(null);});
-            } else {
-              var b64=loadPdfLocal(rep.id);
-              if(!b64){alert('PDF non trovato. Se hai cambiato dispositivo o browser, il file non è più disponibile localmente. Configura un repository GitHub nelle Impostazioni per non perderli.');return;}
-              var blob=b64ToBlob(b64);var url=URL.createObjectURL(blob);setViewingPdf(url);
-            }
+      reports.map(function(rep){
+        var isGithub=rep.pdfStorage==='github';
+        var isLoadingThis=pdfLoadingId===rep.id;
+        function openPdf(){
+          if(isGithub){
+            var token=getToken();var repo=rep.pdfGithubRepo||getPdfRepo();
+            if(!token||!repo){alert('Configura GitHub nelle Impostazioni per aprire questo PDF.');return;}
+            setPdfLoadingId(rep.id);
+            fetchPdfGithub(token,repo,rep.id).then(function(b64){
+              if(!b64){alert('PDF non trovato su GitHub.');setPdfLoadingId(null);return;}
+              var blob=b64ToBlob(b64);var url=URL.createObjectURL(blob);
+              setViewingPdf(url);setPdfLoadingId(null);
+            }).catch(function(){alert('Errore nel caricamento del PDF da GitHub.');setPdfLoadingId(null);});
+          } else {
+            var b64=loadPdfLocal(rep.id);
+            if(!b64){alert('PDF non trovato. Se hai cambiato dispositivo o browser, il file non è più disponibile localmente. Configura un repository GitHub nelle Impostazioni per non perderli.');return;}
+            var blob=b64ToBlob(b64);var url=URL.createObjectURL(blob);setViewingPdf(url);
           }
-          function deletePdf(){
-            if(!confirm('Eliminare questo report?'))return;
-            if(isGithub){
-              var token=getToken();var repo=rep.pdfGithubRepo||getPdfRepo();
-              if(token&&repo&&rep.pdfGithubSha){deletePdfGithub(token,repo,rep.id,rep.pdfGithubSha).catch(function(){});}
-            } else {
-              deletePdfLocal(rep.id);
-            }
-            persist({reports:(data.reports||[]).filter(function(x){return x.id!==rep.id;})});
+        }
+        function deletePdf(){
+          if(!confirm('Eliminare questo file?'))return;
+          if(isGithub){
+            var token=getToken();var repo=rep.pdfGithubRepo||getPdfRepo();
+            if(token&&repo&&rep.pdfGithubSha){deletePdfGithub(token,repo,rep.id,rep.pdfGithubSha).catch(function(){});}
+          } else {
+            deletePdfLocal(rep.id);
           }
-          return h(Card,{key:rep.id},
-            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
-              h('div',{style:{flex:1,minWidth:0}},
-                h('div',{style:{fontSize:12,fontWeight:500,marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},rep.filename),
-                h('div',{style:{display:'flex',alignItems:'center',gap:6,marginTop:2}},
-                  h('div',{style:{fontSize:11,color:MUTED}},rep.reportDate),
-                  isGithub&&h('span',{style:{fontSize:9,color:'#22C55E',background:'#22C55E18',padding:'1px 6px',borderRadius:10,border:'1px solid #22C55E44',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'GitHub')
-                )
-              ),
-              h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0,marginLeft:8}},
-                h('span',{style:{fontSize:9,color:tc,background:tc+'18',padding:'2px 8px',borderRadius:20,border:'1px solid '+tc+'44',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},TYPE_LABEL[rep.type]||rep.type),
-                rep.hasPdf&&h('button',{onClick:openPdf,disabled:isLoadingThis,style:{background:isGithub?'#22C55E18':ACC5,border:'1px solid '+(isGithub?'#22C55E44':ACC3),borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:10,color:isGithub?'#22C55E':ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,opacity:isLoadingThis?0.5:1}},isLoadingThis?'…':('📄 '+(isGithub?'GitHub':'PDF'))),
-                h('button',{onClick:deletePdf,style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'trash',sz:14,c:'#EF4444'}))
+          persist({reports:(data.reports||[]).filter(function(x){return x.id!==rep.id;})});
+        }
+        return h(Card,{key:rep.id},
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+            h('div',{style:{flex:1,minWidth:0}},
+              h('div',{style:{fontSize:13,fontWeight:600,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},rep.filename),
+              h('div',{style:{display:'flex',alignItems:'center',gap:6,marginTop:2}},
+                h('div',{style:{fontSize:11,color:MUTED}},rep.reportDate),
+                rep.label&&h('span',{style:{fontSize:10,color:ACC,background:ACC2,padding:'1px 7px',borderRadius:10,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},rep.label),
+                isGithub&&h('span',{style:{fontSize:9,color:'#22C55E',background:'#22C55E18',padding:'1px 6px',borderRadius:10,border:'1px solid #22C55E44',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'GitHub')
               )
+            ),
+            h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0,marginLeft:8}},
+              rep.hasPdf&&h('button',{onClick:openPdf,disabled:isLoadingThis,style:{background:isGithub?'#22C55E18':ACC5,border:'1px solid '+(isGithub?'#22C55E44':ACC3),borderRadius:8,padding:'4px 8px',cursor:'pointer',fontSize:10,color:isGithub?'#22C55E':ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,opacity:isLoadingThis?0.5:1}},isLoadingThis?'…':('📄 '+(isGithub?'GitHub':'Apri'))),
+              h('button',{onClick:deletePdf,style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'trash',sz:14,c:'#EF4444'}))
             )
-          );
-        })
-      )
+          )
+        );
+      })
     )
   );
 }
@@ -2113,7 +1810,7 @@ function App(){
       case 'scheda':     return h(SchedaV,{schede:schede,setSch:setSch,go:go});
       case 'nuova':      return h(NuovaScheda,{initialScheda:vp.initialScheda||null,onSave:function(s){if(vp.initialScheda){setSchede(function(prev){return prev.map(function(x){return x.id===s.id?s:x;});});}else{setSchede(function(prev){return prev.map(function(x){return Object.assign({},x,{attiva:false});}).concat([s]);});}go('scheda');},go:go});
       case 'settings':   return h(Settings,{profile:profile,onProfile:function(pr){setProfile(pr);},go:go});
-      case 'corpo':      return h(CorpoNutri,{sessions:sessions,go:go});
+      case 'corpo':      return h(CorpoNutri,{go:go});
       default:           return h(Home,{schede:schede,sessions:sessions,profile:profile,go:go});
     }
   }
