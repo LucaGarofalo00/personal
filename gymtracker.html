@@ -824,7 +824,7 @@ function PesiLive(p){
   if(!started){
     return h('div',{style:{minHeight:'100vh',display:'flex',flexDirection:'column',background:BG,padding:'32px 16px'}},
       h(Back,{onClick:function(){go('pesiblocks');},label:'INDIETRO'}),
-      h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',marginTop:-60}}),
+      h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}),
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:'0.03em',color:ACC,marginBottom:4,marginTop:40}},bl.nome),
       h('div',{style:{fontSize:13,color:MUTED,marginBottom:28}},bl.es.length+' esercizi · ~'+estimateTime(bl)+'min stimati'),
       h('div',{style:{width:'100%',background:SURF,borderRadius:14,padding:16,marginBottom:28}},
