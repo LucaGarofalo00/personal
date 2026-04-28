@@ -1001,7 +1001,8 @@ function CalLive(p){
   var _8=useState(false);var pickerOpen=_8[0];var setPickerOpen=_8[1];
   var _9=useState(null);var tipFor=_9[0];var setTipFor=_9[1];
   var _10=useState(false);var started=_10[0];var setStarted=_10[1];
-  var _11=useState(false);var abortSheet=_11[0];var setAbortSheet=_11[1];var iv=setInterval(function(){setEl(Math.floor((Date.now()-t0R.current)/1000));},1000);return function(){clearInterval(iv);};},[started]);
+  var _11=useState(false);var abortSheet=_11[0];var setAbortSheet=_11[1];
+  useEffect(function(){if(!started)return;t0R.current=Date.now();var iv=setInterval(function(){setEl(Math.floor((Date.now()-t0R.current)/1000));},1000);return function(){clearInterval(iv);};},[started]);
   useEffect(function(){return function(){clearInterval(tRef.current);};},[]);
 
   var startTimer=useCallback(function(sec){
