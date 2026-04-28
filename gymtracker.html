@@ -1410,9 +1410,19 @@ function CorpoNutri(p){
     var type=pendingType.current;
     setUploading(type);setUploadErr('');
     var r=new FileReader();
-    r.onerror=function(){setUploadErr('Lettura file fallita');setUploading(null);};
+    r.onerror=function(){setUploadErr('Lettura file fallita — riprova o usa un altro browser');setUploading(null);};
     r.onload=function(){
-      var b64=r.result.split(',')[1];
+      var result=r.result;
+      var b64;
+      if(typeof result==='string'){
+        b64=result.indexOf(',')>=0?result.split(',')[1]:result;
+      } else {
+        /* ArrayBuffer fallback per iOS Safari */
+        var bytes=new Uint8Array(result);
+        var binary='';
+        for(var i=0;i<bytes.byteLength;i++){binary+=String.fromCharCode(bytes[i]);}
+        b64=btoa(binary);
+      }
       var sys=type==='body_comp'
         ?'Sei un esperto di composizione corporea. Estrai tutti i valori numerici dal report. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"body_comp","data_report":"YYYY-MM-DD o null","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
         :'Sei un nutrizionista esperto. Estrai tutte le informazioni nutrizionali. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"nutrition","data_report":"YYYY-MM-DD o null","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
@@ -1435,7 +1445,7 @@ function CorpoNutri(p){
         setUploading(null);
       });
     };
-    r.readAsDataURL(file);
+    try{r.readAsArrayBuffer(file);}catch(e){r.readAsDataURL(file);}
   }
 
   function sendChat(){
@@ -1474,7 +1484,7 @@ function CorpoNutri(p){
   var TYPE_LABEL={body_comp:'Body Comp',nutrition:'Nutrizione'};
 
   return h('div',{style:{paddingBottom:100}},
-    h('input',{ref:fileRef,type:'file',accept:'application/pdf',onChange:onFile,style:{display:'none'}}),
+    h('input',{ref:fileRef,type:'file',accept:'.pdf,application/pdf',onChange:onFile,style:{display:'none'}}),
     /* ─ Confirmation sheet ─ */
     pendingReport&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}},
       h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'0 0 40px',maxHeight:'88vh',overflowY:'auto'}},
