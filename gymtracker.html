@@ -26,8 +26,10 @@ textarea,input,button{outline:none;font-family:'Barlow',sans-serif}
 <div id="root"></div>
 <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 'use strict';
+if(window.pdfjsLib){window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
 var h=React.createElement,useState=React.useState,useEffect=React.useEffect,useRef=React.useRef,useCallback=React.useCallback;
 var THEMES=[{id:'lime',name:'Lime',hex:'#C8FF00',text:'#000'},{id:'cyan',name:'Cyan',hex:'#00F0FF',text:'#000'},{id:'fire',name:'Fire',hex:'#FF5722',text:'#fff'},{id:'violet',name:'Violet',hex:'#C084FC',text:'#000'},{id:'gold',name:'Gold',hex:'#FFD700',text:'#000'},{id:'red',name:'Red',hex:'#FF2244',text:'#fff'}];
 var TK='gymtracker_theme',BG='#0C0C0D',SURF='#161618',SURF2='#202022',BORD='rgba(255,255,255,0.08)',TEXT='#F0EFE8',MUTED='rgba(240,239,232,0.38)',SK='gymtracker_v9',PK='gymtracker_profile',FK='gymtracker_freq';
@@ -793,18 +795,21 @@ function PesiLive(p){
   var inp={background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'12px 6px',color:TEXT,fontSize:22,fontWeight:700,fontFamily:"'Roboto Mono',monospace",textAlign:'center',width:'100%'};
 
   if(!started){
-    return h('div',{style:{minHeight:'100vh',display:'flex',flexDirection:'column',background:BG,padding:'32px 16px'}},
-      h(Back,{onClick:function(){go('pesiblocks');},label:'INDIETRO'}),
-      h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',marginTop:-60}}),
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:'0.03em',color:ACC,marginBottom:4,marginTop:40}},bl.nome),
-      h('div',{style:{fontSize:13,color:MUTED,marginBottom:28}},bl.es.length+' esercizi · ~'+estimateTime(bl)+'min stimati'),
-      h('div',{style:{width:'100%',background:SURF,borderRadius:14,padding:16,marginBottom:28}},
-        bl.es.map(function(ex){return h('div',{key:ex.id,style:{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'0.5px solid '+BORD}},
-          h('div',{style:{fontSize:13,fontFamily:"'Bebas Neue',cursive",letterSpacing:'0.02em'}},ex.nome),
-          h('div',{style:{fontSize:11,color:MUTED}},ex.serie+'×'+ex.reps)
-        );}
-      )),
-      h(Btn,{full:true,onClick:function(){setStarted(true);}},'▶  INIZIA ALLENAMENTO')
+    return h('div',{style:{minHeight:'100vh',background:BG,display:'flex',flexDirection:'column',paddingBottom:80}},
+      h('div',{style:{padding:'16px 16px 0'}},
+        h(Back,{onClick:function(){go('pesiblocks');}})
+      ),
+      h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'24px 16px',textAlign:'center'}},
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:'0.03em',color:ACC,marginBottom:4,lineHeight:1.1}},bl.nome),
+        h('div',{style:{fontSize:13,color:MUTED,marginBottom:28}},bl.es.length+' esercizi · ~'+estimateTime(bl)+'min stimati'),
+        h('div',{style:{width:'100%',background:SURF,borderRadius:14,padding:16,marginBottom:28,textAlign:'left'}},
+          bl.es.map(function(ex){return h('div',{key:ex.id,style:{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'0.5px solid '+BORD}},
+            h('div',{style:{fontSize:13,fontFamily:"'Bebas Neue',cursive",letterSpacing:'0.02em'}},ex.nome),
+            h('div',{style:{fontSize:11,color:MUTED}},ex.tipo==='riscaldamento'?(ex.durata||10)+'min':(ex.serie+'×'+ex.reps))
+          );}
+        )),
+        h(Btn,{full:true,onClick:function(){if(p.onStart)p.onStart();setStarted(true);}},'▶  INIZIA ALLENAMENTO')
+      )
     );
   }
 
@@ -1461,6 +1466,104 @@ function NuovaScheda(p){
   );
 }
 
+/* ── PDF page renderer ── */
+function PdfPage(p){
+  var page=p.page,scale=p.scale,num=p.num,total=p.total;
+  var canvasRef=useRef(null);
+  var taskRef=useRef(null);
+  useEffect(function(){
+    if(!page||!canvasRef.current)return;
+    if(taskRef.current){try{taskRef.current.cancel();}catch(e){}}
+    var vp=page.getViewport({scale:scale});
+    var canvas=canvasRef.current;
+    canvas.width=vp.width;
+    canvas.height=vp.height;
+    var ctx=canvas.getContext('2d');
+    taskRef.current=page.render({canvasContext:ctx,viewport:vp});
+    return function(){if(taskRef.current){try{taskRef.current.cancel();}catch(e){}}};
+  },[page,scale]);
+  return h('div',{style:{position:'relative',flexShrink:0,lineHeight:0}},
+    total>1&&h('div',{style:{position:'absolute',top:8,right:8,background:'rgba(0,0,0,0.65)',color:'#fff',fontSize:9,padding:'2px 8px',borderRadius:10,fontFamily:"'Roboto Mono',monospace",zIndex:2,letterSpacing:'0.05em'}},num+'/'+total),
+    h('canvas',{ref:canvasRef,style:{display:'block',borderRadius:3,boxShadow:'0 4px 24px rgba(0,0,0,0.7)'}})
+  );
+}
+/* ── PDF viewer modal with zoom & multi-page ── */
+function PdfViewer(p){
+  var url=p.url,onClose=p.onClose;
+  var _pages=useState([]);var pages=_pages[0];var setPages=_pages[1];
+  var _scale=useState(1.3);var scale=_scale[0];var setScale=_scale[1];
+  var _loading=useState(true);var pdfLoading=_loading[0];var setPdfLoading=_loading[1];
+  var _err=useState('');var pdfErr=_err[0];var setPdfErr=_err[1];
+  var pinchRef=useRef({active:false,dist:0,baseScale:1.3});
+  var containerRef=useRef(null);
+  useEffect(function(){
+    if(!url)return;
+    var lib=window.pdfjsLib;
+    if(!lib){setPdfErr('PDF.js non disponibile');setPdfLoading(false);return;}
+    var task=lib.getDocument(url);
+    task.promise.then(function(pdf){
+      var arr=[];for(var i=1;i<=pdf.numPages;i++){arr.push(pdf.getPage(i));}
+      return Promise.all(arr);
+    }).then(function(ps){setPages(ps);setPdfLoading(false);})
+    .catch(function(err){setPdfErr('Errore caricamento: '+(err.message||'riprova'));setPdfLoading(false);});
+    return function(){try{task.destroy&&task.destroy();}catch(e){}};
+  },[url]);
+  /* passive:false per preventDefault su pinch */
+  useEffect(function(){
+    var el=containerRef.current;
+    if(!el)return;
+    function onTM(e){
+      if(!pinchRef.current.active||e.touches.length!==2)return;
+      e.preventDefault();
+      var dx=e.touches[0].clientX-e.touches[1].clientX;
+      var dy=e.touches[0].clientY-e.touches[1].clientY;
+      var d=Math.sqrt(dx*dx+dy*dy);
+      var ns=Math.min(3.5,Math.max(0.5,pinchRef.current.baseScale*(d/pinchRef.current.dist)));
+      setScale(parseFloat(ns.toFixed(2)));
+    }
+    el.addEventListener('touchmove',onTM,{passive:false});
+    return function(){el.removeEventListener('touchmove',onTM,{passive:false});};
+  },[]);
+  function onTS(e){
+    if(e.touches.length!==2)return;
+    var dx=e.touches[0].clientX-e.touches[1].clientX;
+    var dy=e.touches[0].clientY-e.touches[1].clientY;
+    pinchRef.current={active:true,dist:Math.sqrt(dx*dx+dy*dy),baseScale:scale};
+  }
+  function onTE(){pinchRef.current.active=false;}
+  function chScale(d){setScale(function(s){return Math.min(3.5,Math.max(0.5,parseFloat((s+d).toFixed(2))));});}
+  var btnZ={background:SURF2,border:'1px solid '+BORD,borderRadius:8,color:TEXT,fontSize:18,fontWeight:700,cursor:'pointer',padding:'5px 14px',lineHeight:1,flexShrink:0,fontFamily:"'Roboto Mono',monospace"};
+  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.97)',zIndex:600,display:'flex',flexDirection:'column'}},
+    h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',background:SURF,borderBottom:'0.5px solid '+BORD,flexShrink:0,gap:8}},
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:19,letterSpacing:'0.03em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}},
+        pages.length>0?'PDF · '+pages.length+(pages.length===1?' pagina':' pagine'):'Report PDF'
+      ),
+      h('div',{style:{display:'flex',alignItems:'center',gap:6,flexShrink:0}},
+        h('button',{onClick:function(){chScale(-0.25);},style:btnZ},'−'),
+        h('div',{style:{fontSize:11,color:MUTED,fontFamily:"'Roboto Mono',monospace",minWidth:46,textAlign:'center'}},Math.round(scale*100)+'%'),
+        h('button',{onClick:function(){chScale(0.25);},style:btnZ},'+'),
+        h('div',{style:{width:1,height:20,background:BORD,margin:'0 2px'}}),
+        h('button',{onClick:onClose,style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:'4px 8px',fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em',flexShrink:0}},'✕ CHIUDI')
+      )
+    ),
+    h('div',{
+      ref:containerRef,
+      style:{flex:1,overflowY:'auto',overflowX:'auto',background:'#0f0f0f',display:'flex',flexDirection:'column',alignItems:'center',padding:'20px 12px',gap:16},
+      onTouchStart:onTS,
+      onTouchEnd:onTE
+    },
+      pdfLoading&&h('div',{style:{color:MUTED,fontSize:14,padding:'80px 0',textAlign:'center',lineHeight:2}},
+        h('div',{style:{fontSize:28,marginBottom:12}},'📄'),
+        'Caricamento PDF in corso…'
+      ),
+      pdfErr&&h('div',{style:{color:'#EF4444',fontSize:13,padding:'60px 20px',textAlign:'center',lineHeight:1.8}},pdfErr),
+      !pdfLoading&&!pdfErr&&pages.length===0&&h('div',{style:{color:MUTED,fontSize:13,padding:'60px 0',textAlign:'center'}},'Nessuna pagina trovata'),
+      !pdfLoading&&!pdfErr&&pages.map(function(page,i){
+        return h(PdfPage,{key:i,page:page,scale:scale,num:i+1,total:pages.length});
+      })
+    )
+  );
+}
 /* ── corpo & nutrizione ── */
 var CORPO_KEY='gymtracker_corpo';
 function loadCorpo(){try{return JSON.parse(localStorage.getItem(CORPO_KEY))||{reports:[]};}catch(e){return{reports:[]};}}
@@ -1540,8 +1643,8 @@ function CorpoNutri(p){
         b64=btoa(binary);
       }
       var sys=type==='body_comp'
-        ?'Sei un esperto di composizione corporea. Analizza il report ed estrai TUTTI i valori numerici usando nomi italiani e inglesi. Cerca: peso corporeo totale (kg), massa magra/FFM/lean mass (kg), massa grassa/FM/fat mass (kg), percentuale di grasso corporeo/% BF/FM% — se non indicata direttamente calcolala come (massaGrassa/peso)*100, acqua corporea totale/TBW (litri), metabolismo basale/BMR (kcal), BMI, massa ossea/bone mass/minerale osseo (kg) — cerca anche nelle note o appendici, massa muscolare/SMM/muscolo scheletrico/BCM (kg). Se un valore non esiste nel documento lascialo null. Rispondi SOLO con JSON valido senza markdown. Schema: {"tipo":"body_comp","data_report":"YYYY-MM-DD o null","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
-        :'Sei un nutrizionista esperto. Estrai le informazioni nutrizionali dal documento. Se è un piano alimentare con sostituzioni (non un diario), estrai i MACRO TARGET giornalieri totali dichiarati (calorie totali, proteine, carboidrati, grassi). Rispondi SOLO con JSON valido senza markdown. Schema: {"tipo":"nutrition","data_report":"YYYY-MM-DD o null","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
+        ?'Sei un esperto di composizione corporea. Analizza il report PDF (InBody, DEXA, BIA, Bod Pod o altro) leggendo OGNI pagina incluse note, appendici e tabelle secondarie. NON inventare valori: se assente lascia null. Campi da estrarre:\n- peso: peso corporeo totale kg (peso/weight/body weight/Wt/massa totale)\n- massaMagra: massa libera da grasso kg (FFM/LBM/lean body mass/lean mass/massa magra/fat-free mass — NON confondere con muscolo)\n- massaGrassa: massa grassa kg (FM/fat mass/massa grassa/body fat mass)\n- percGrasso: % grasso corporeo (PBF/% BF/body fat%/% grasso/FM%); se assente calcolala: (massaGrassa/peso)*100 arrotondato a 1 decimale\n- acquaCorporea: acqua corporea totale litri (TBW/total body water/acqua corporea/ICW+ECW)\n- metabolismoBasale: metabolismo basale kcal/die (BMR/RMR/metabolismo basale/basal metabolic rate; se in kJ dividi per 4.184)\n- BMI: indice massa corporea (BMI/body mass index/IMC)\n- massaOssea: massa ossea kg (bone mass/massa ossea/BMC/bone mineral content/ossea/minerals — cerca anche in note e tabelle secondarie)\n- muscolo: muscolo scheletrico kg (SMM/skeletal muscle mass/muscolo scheletrico/BCM/lean muscle/appendicular lean mass)\nHighlights: valori fuori range, note cliniche, tendenze. Sommario: 1-2 frasi sullo stato corporeo.\nRispondi SOLO JSON valido, zero markdown:\n{"tipo":"body_comp","data_report":"YYYY-MM-DD","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
+        :'Sei un nutrizionista esperto. Analizza il PDF leggendo OGNI pagina. Il documento può essere un piano alimentare strutturato, un diario o un referto. NON inventare valori: se assente lascia null.\nSe PIANO ALIMENTARE: cerca la tabella riepilogativa dei macro totali giornalieri; se assente somma tutti i pasti del giorno tipo.\nSe DIARIO: calcola la media giornaliera.\nCampi:\n- calorie: kcal totali/die (calorie/kcal/energia/energy/fabbisogno)\n- proteine: g proteine/die (proteine/protein/P/prot)\n- carboidrati: g carboidrati/die (carboidrati/carbo/CHO/glucidi/C)\n- grassi: g grassi/die (grassi/lipidi/fat/G/lipids)\n- fibre: g fibre/die (fibre/fiber/dietary fiber)\n- acqua: litri acqua/die consigliati (acqua/water/idratazione)\ndata_report: data piano/referto YYYY-MM-DD. Highlights: note nutrizionista, pasti liberi, variazioni weekend, integratori. Sommario: 1-2 frasi.\nRispondi SOLO JSON valido, zero markdown:\n{"tipo":"nutrition","data_report":"YYYY-MM-DD","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
       fetchGeminiWithRetry('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({system_instruction:{parts:[{text:sys}]},contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:b64}},{text:'Analizza e restituisci i dati nel formato JSON richiesto.'}]}]})
@@ -1606,15 +1709,7 @@ function CorpoNutri(p){
   return h('div',{style:{paddingBottom:100}},
     h('input',{ref:fileRef,type:'file',accept:'.pdf,application/pdf',onChange:onFile,style:{display:'none'}}),
     /* ─ PDF Viewer modal ─ */
-    viewingPdf&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.96)',zIndex:600,display:'flex',flexDirection:'column'}},
-      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:SURF,borderBottom:'0.5px solid '+BORD,flexShrink:0}},
-        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.03em'}},'Report PDF'),
-        h('button',{onClick:function(){setViewingPdf(null);},style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:6,display:'flex',alignItems:'center',gap:6}},
-          h(Icon,{n:'close',sz:20,c:MUTED}),h('span',{style:{fontSize:12,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CHIUDI')
-        )
-      ),
-      h('iframe',{src:viewingPdf,style:{flex:1,border:'none',width:'100%'},title:'Report PDF'})
-    ),
+    viewingPdf&&h(PdfViewer,{url:viewingPdf,onClose:function(){URL.revokeObjectURL(viewingPdf);setViewingPdf(null);}}),
     /* ─ Confirmation sheet ─ */
     pendingReport&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}},
       h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'0 0 40px',maxHeight:'88vh',overflowY:'auto'}},
@@ -1817,6 +1912,7 @@ function App(){
   var _a5=useState(loadProfile());var profile=_a5[0];var setProfile=_a5[1];
   var _a6=useState(!loadProfile());var showSetup=_a6[0];var setShowSetup=_a6[1];
   var _a7=useState('idle');var syncStatus=_a7[0];var setSyncStatus=_a7[1];
+  var _a8=useState(false);var liveStarted=_a8[0];var setLiveStarted=_a8[1];
   var syncTimerRef=useRef(null);
   var initialDone=useRef(false);
 
@@ -1856,21 +1952,21 @@ function App(){
     },2000);
   },[schede,sessions,profile]);
 
-  function go(v,pp){setView(v);setVp(pp||{});if(window.scrollTo)window.scrollTo(0,0);}
+  function go(v,pp){setView(v);setVp(pp||{});setLiveStarted(false);if(window.scrollTo)window.scrollTo(0,0);}
   function setSch(arr){setSchede(arr);}
 
   if(showSetup){
     return h(ProfileSetup,{onDone:function(pr){setProfile(pr);setShowSetup(false);}});
   }
 
-  var isLive=view==='live'||view==='callive';
+  var isLive=(view==='live'&&liveStarted)||view==='callive';
 
   function renderView(){
     switch(view){
       case 'home':       return h(Home,{schede:schede,sessions:sessions,profile:profile,syncStatus:syncStatus,go:go});
       case 'start':      return h(Start,{schede:schede,go:go});
       case 'pesiblocks': return h(PesiBlocks,{schede:schede,sessions:sessions,go:go});
-      case 'live':       return h(PesiLive,{bl:vp.bl,sId:vp.sId,sessions:sessions,onDone:function(s){setSessions(function(prev){return prev.concat([s]);});go('log');},go:go});
+      case 'live':       return h(PesiLive,{bl:vp.bl,sId:vp.sId,sessions:sessions,onDone:function(s){setSessions(function(prev){return prev.concat([s]);});go('log');},go:go,onStart:function(){setLiveStarted(true);}});
       case 'callive':    return h(CalLive,{onDone:function(s){setSessions(function(prev){return prev.concat([s]);});go('log');},go:go});
       case 'log':        return h(Log,{sessions:sessions,setSessions:setSessions,schede:schede,go:go});
       case 'det':        return h(Det,{s:vp.s,setSessions:setSessions,go:go});
