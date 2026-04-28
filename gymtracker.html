@@ -101,7 +101,14 @@ async function githubPdfGet(token,repo,id){
   var d=await res.json();
   return d;
 }
+async function ensureGithubFolder(token,repo){
+  var res=await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER,{headers:{'Authorization':'Bearer '+token}});
+  if(res.ok)return;
+  /* cartella non esiste — crea un file .gitkeep */
+  await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER+'/.gitkeep',{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({message:'Init gymtracker-pdfs folder',content:btoa('')})});
+}
 async function uploadPdfGithub(token,repo,id,b64){
+  await ensureGithubFolder(token,repo);
   var existing=await githubPdfGet(token,repo,id);
   var body={message:'Add report PDF',content:b64};
   if(existing&&existing.sha)body.sha=existing.sha;
