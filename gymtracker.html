@@ -433,7 +433,7 @@ function Settings(p){
     h('div',{style:{height:1,background:BORD,marginBottom:20}}),
     h(Lbl,null,'AI – Gemini API Key'),
     h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
-      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Gemini 1.5 Flash – Gratuito'),
+      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Gemini 2.5 Flash – Gratuito'),
       h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Usata per analisi PDF in Corpo & Nutrizione. Crea la chiave gratis su aistudio.google.com/apikey'),
       h('input',{type:'password',value:form.gkey||'',onChange:function(e){set('gkey',e.target.value);},placeholder:'AIza...',style:Object.assign({},inp,{marginBottom:0,fontFamily:"'Roboto Mono',monospace",fontSize:13})}),
       (form.gkey||getGKey())&&h('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:6}},
@@ -1416,7 +1416,7 @@ function CorpoNutri(p){
       var sys=type==='body_comp'
         ?'Sei un esperto di composizione corporea. Estrai tutti i valori numerici dal report. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"body_comp","data_report":"YYYY-MM-DD o null","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
         :'Sei un nutrizionista esperto. Estrai tutte le informazioni nutrizionali. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"nutrition","data_report":"YYYY-MM-DD o null","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
-      fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key='+getGKey(),{
+      fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({system_instruction:{parts:[{text:sys}]},contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:b64}},{text:'Analizza e restituisci i dati nel formato JSON richiesto.'}]}]})
       }).then(function(resp){return resp.json();}).then(function(result){
@@ -1452,7 +1452,7 @@ function CorpoNutri(p){
       if(rep.analysis.highlights&&rep.analysis.highlights.length)ctx+='Note: '+rep.analysis.highlights.join('; ')+'\n';
     });
     if(sessions.length>0)ctx+='Sessioni di allenamento registrate: '+sessions.length+' totali\n';
-    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key='+getGKey(),{
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+getGKey(),{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({system_instruction:{parts:[{text:'Sei un assistente esperto di composizione corporea e nutrizione sportiva. Rispondi sempre in italiano, in modo pratico e personalizzato. Hai accesso ai seguenti dati:\n'+ctx+'Se mancano dati per rispondere con precisione, dillo esplicitamente.'}]},
         contents:newMsgs.map(function(x){return{role:x.role==='assistant'?'model':'user',parts:[{text:x.content}]};})
