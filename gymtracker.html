@@ -107,6 +107,7 @@ async function uploadPdfGithub(token,repo,id,b64){
   if(existing&&existing.sha)body.sha=existing.sha;
   var res=await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER+'/'+id+'.pdf',{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
   var d=await res.json();
+  if(!res.ok){throw new Error((d.message||'HTTP '+res.status)+' — assicurati che il token abbia scope "repo" e che il repo esista');}
   return (d.content&&d.content.sha)||null;
 }
 async function fetchPdfGithub(token,repo,id){
@@ -1537,6 +1538,7 @@ function CorpoNutri(p){
   var _d=useState(function(){return loadCorpo();});var data=_d[0];var setData=_d[1];
   var _uploading=useState(false);var uploading=_uploading[0];var setUploading=_uploading[1];
   var _err=useState('');var uploadErr=_err[0];var setUploadErr=_err[1];
+  var _ghErr=useState('');var ghErr=_ghErr[0];var setGhErr=_ghErr[1];
   var _pending=useState(null);var pendingFile=_pending[0];var setPendingFile=_pending[1];
   var _pendDate=useState('');var pendDate=_pendDate[0];var setPendDate=_pendDate[1];
   var _pendLabel=useState('');var pendLabel=_pendLabel[0];var setPendLabel=_pendLabel[1];
@@ -1557,16 +1559,24 @@ function CorpoNutri(p){
     persist({reports:(data.reports||[]).concat([report])});
     var b64=pendingPdfRef.current;
     pendingPdfRef.current=null;
-    setPendingFile(null);setPendDate('');setPendLabel('');
+    setPendingFile(null);setPendDate('');setPendLabel('');setGhErr('');
     if(!b64)return;
     var token=getToken();var repo=getPdfRepo();
     if(token&&repo){
       setPdfUploading(report.id);
       uploadPdfGithub(token,repo,report.id,b64).then(function(sha){
-        if(sha){updateReport(report.id,{pdfStorage:'github',pdfGithubSha:sha,pdfGithubRepo:repo});}
-        else{savePdfLocal(report.id,b64);}
+        if(sha){
+          updateReport(report.id,{pdfStorage:'github',pdfGithubSha:sha,pdfGithubRepo:repo});
+        } else {
+          savePdfLocal(report.id,b64);
+          setGhErr('⚠ GitHub ha rifiutato il file (sha nullo). Salvato in locale. Verifica il token e il repo.');
+        }
         setPdfUploading(null);
-      }).catch(function(){savePdfLocal(report.id,b64);setPdfUploading(null);});
+      }).catch(function(err){
+        savePdfLocal(report.id,b64);
+        setGhErr('⚠ Errore GitHub: '+(err&&err.message?err.message:'controlla token e repo')+'. Salvato in locale.');
+        setPdfUploading(null);
+      });
     } else {
       savePdfLocal(report.id,b64);
     }
@@ -1596,7 +1606,7 @@ function CorpoNutri(p){
       setPendLabel('');
       setUploading(false);
     };
-    try{r.readAsArrayBuffer(file);}catch(e){r.readAsDataURL(file);}
+    try{r.readAsDataURL(file);}catch(e){r.readAsArrayBuffer(file);}
   }
 
   return h('div',{style:{paddingBottom:100}},
@@ -1647,6 +1657,7 @@ function CorpoNutri(p){
       ),
       uploadErr&&h('div',{style:{fontSize:11,color:'#EF4444',marginTop:8,padding:'6px 10px',background:'rgba(239,68,68,0.08)',borderRadius:8,border:'1px solid rgba(239,68,68,0.2)'}},uploadErr)
     ),
+    ghErr&&h('div',{style:{margin:'10px 16px 0',fontSize:11,color:'#EF4444',padding:'8px 12px',background:'rgba(239,68,68,0.08)',borderRadius:8,border:'1px solid rgba(239,68,68,0.2)',lineHeight:1.5}},ghErr),
     /* ─ Empty state ─ */
     reports.length===0&&!uploading&&h('div',{style:{padding:'60px 20px',textAlign:'center'}},
       h('div',{style:{fontSize:56,marginBottom:16}},'📁'),
