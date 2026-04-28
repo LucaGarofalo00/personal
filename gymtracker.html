@@ -433,7 +433,7 @@ function Settings(p){
     h('div',{style:{height:1,background:BORD,marginBottom:20}}),
     h(Lbl,null,'AI – Gemini API Key'),
     h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
-      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Gemini 1.5 Flash – Gratuito'),
+      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Gemini 2.0 Flash – Gratuito'),
       h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Usata per analisi PDF in Corpo & Nutrizione. Crea la chiave gratis su aistudio.google.com/apikey'),
       h('input',{type:'password',value:form.gkey||'',onChange:function(e){set('gkey',e.target.value);},placeholder:'AIza...',style:Object.assign({},inp,{marginBottom:0,fontFamily:"'Roboto Mono',monospace",fontSize:13})}),
       (form.gkey||getGKey())&&h('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:6}},
@@ -790,7 +790,10 @@ function PesiLive(p){
     /* header */
     h('div',{style:{background:SURF,borderBottom:'1px solid '+BORD,padding:'12px 16px',position:'sticky',top:0,zIndex:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
-        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,color:ACC,letterSpacing:'0.05em'}},fmtHM(el)),
+        h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+          h('button',{onClick:function(){if(confirm('Abbandonare l\'allenamento? Il progresso non sarà salvato.')){go('pesiblocks');}},style:{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:8,padding:'5px 8px',cursor:'pointer',display:'flex',alignItems:'center'}},h(Icon,{n:'back',sz:16,c:'#EF4444'})),
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,color:ACC,letterSpacing:'0.05em'}},fmtHM(el))
+        ),
         h('div',{style:{textAlign:'right'}},
           h('div',{style:{fontSize:11,fontWeight:500,fontFamily:"'Barlow Condensed',sans-serif"}},bl.nome.split('–')[0].trim()),
           h('div',{style:{fontSize:10,color:MUTED}},doneS+'/'+totalS+' serie')
@@ -987,9 +990,12 @@ function CalLive(p){
     h(ExercisePicker,{visible:pickerOpen,onClose:function(){setPickerOpen(false);},onAdd:doAdd,baseList:CAL_ES,label:'Aggiungi esercizio'}),
     h('div',{style:{background:SURF,borderBottom:'1px solid '+BORD,padding:'12px 16px',position:'sticky',top:0,zIndex:10}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
-        h('div',null,
-          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,color:ACC,letterSpacing:'0.05em'}},fmtHM(el)),
-          h('div',{style:{fontSize:10,color:ACC,letterSpacing:'0.1em',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CALISTHENICS')
+        h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+          h('button',{onClick:function(){if(confirm('Abbandonare la sessione? Il progresso non sarà salvato.')){go('start');}},style:{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:8,padding:'5px 8px',cursor:'pointer',display:'flex',alignItems:'center'}},h(Icon,{n:'back',sz:16,c:'#EF4444'})),
+          h('div',null,
+            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,color:ACC,letterSpacing:'0.05em'}},fmtHM(el)),
+            h('div',{style:{fontSize:10,color:ACC,letterSpacing:'0.1em',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CALISTHENICS')
+          )
         ),
         h('div',{style:{textAlign:'right'}},
           h('div',{style:{fontSize:12,fontWeight:500}},es.length+' esercizi'),
@@ -1410,7 +1416,7 @@ function CorpoNutri(p){
       var sys=type==='body_comp'
         ?'Sei un esperto di composizione corporea. Estrai tutti i valori numerici dal report. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"body_comp","data_report":"YYYY-MM-DD o null","metriche":{"peso":null,"massaMagra":null,"massaGrassa":null,"percGrasso":null,"acquaCorporea":null,"metabolismoBasale":null,"BMI":null,"massaOssea":null,"muscolo":null},"highlights":[],"sommario":""}'
         :'Sei un nutrizionista esperto. Estrai tutte le informazioni nutrizionali. Rispondi SOLO con JSON valido senza altri testi. Schema: {"tipo":"nutrition","data_report":"YYYY-MM-DD o null","metriche":{"calorie":null,"proteine":null,"carboidrati":null,"grassi":null,"fibre":null,"acqua":null},"highlights":[],"sommario":""}';
-      fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+getGKey(),{
+      fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+getGKey(),{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({system_instruction:{parts:[{text:sys}]},contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:b64}},{text:'Analizza e restituisci i dati nel formato JSON richiesto.'}]}]})
       }).then(function(resp){return resp.json();}).then(function(result){
@@ -1446,7 +1452,7 @@ function CorpoNutri(p){
       if(rep.analysis.highlights&&rep.analysis.highlights.length)ctx+='Note: '+rep.analysis.highlights.join('; ')+'\n';
     });
     if(sessions.length>0)ctx+='Sessioni di allenamento registrate: '+sessions.length+' totali\n';
-    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+getGKey(),{
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+getGKey(),{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({system_instruction:{parts:[{text:'Sei un assistente esperto di composizione corporea e nutrizione sportiva. Rispondi sempre in italiano, in modo pratico e personalizzato. Hai accesso ai seguenti dati:\n'+ctx+'Se mancano dati per rispondere con precisione, dillo esplicitamente.'}]},
         contents:newMsgs.map(function(x){return{role:x.role==='assistant'?'model':'user',parts:[{text:x.content}]};})
@@ -1681,6 +1687,8 @@ function App(){
       if(data){
         if(data.schede)setSchede(data.schede);
         if(data.sessions)setSessions(data.sessions);
+        if(data.profile){setProfile(data.profile);saveProfile(data.profile);setShowSetup(false);}
+        if(data.freq){try{localStorage.setItem(FK,JSON.stringify(data.freq));}catch(e){}}
       }
       setSyncStatus('ok');
       initialDone.current=true;
@@ -1692,8 +1700,10 @@ function App(){
 
   useEffect(function(){
     if(!initialDone.current)return;
-    var data={schede:schede,sessions:sessions};
-    stSave(data);
+    var freq=getFreq();
+    var pr=profile;
+    var data={schede:schede,sessions:sessions,profile:pr,freq:freq};
+    stSave({schede:schede,sessions:sessions});
     var token=getToken();
     if(!token){return;}
     setSyncStatus('syncing');
@@ -1701,7 +1711,7 @@ function App(){
     syncTimerRef.current=setTimeout(function(){
       syncToGist(data,token).then(function(){setSyncStatus('ok');}).catch(function(){setSyncStatus('error');});
     },2000);
-  },[schede,sessions]);
+  },[schede,sessions,profile]);
 
   function go(v,pp){setView(v);setVp(pp||{});if(window.scrollTo)window.scrollTo(0,0);}
   function setSch(arr){setSchede(arr);}
