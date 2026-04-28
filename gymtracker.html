@@ -1651,12 +1651,22 @@ function CorpoNutri(p){
       }).then(function(result){
         if(result.error){throw new Error(result.error.message||'Gemini error');}
         var txt=result.candidates&&result.candidates[0]&&result.candidates[0].content&&result.candidates[0].content.parts[0]&&result.candidates[0].content.parts[0].text||'';
-        var clean=txt.replace(/```json|```/g,'').trim();
+        var clean=txt.replace(/```json[\s\S]*?```|```[\s\S]*?```|```json|```/g,'').trim();
         var parsed=JSON.parse(clean);
-        var extracted=parsed.data_report||'';
+        /* ── sanitize: ogni campo metriche → numero o null ── */
+        var rawM=parsed.metriche||{};
+        var sanitizedM={};
+        Object.keys(rawM).forEach(function(k){var v=rawM[k];sanitizedM[k]=(v===null||v===undefined)?null:(typeof v==='object'?null:parseFloat(v)||null);});
+        /* ── sanitize highlights → array di stringhe ── */
+        var rawH=parsed.highlights||[];
+        var sanitizedH=Array.isArray(rawH)?rawH.map(function(h){return typeof h==='string'?h:(h&&h.text?String(h.text):JSON.stringify(h));}).filter(Boolean):[];
+        /* ── sanitize sommario → stringa ── */
+        var sommario=typeof parsed.sommario==='string'?parsed.sommario:(parsed.sommario?JSON.stringify(parsed.sommario):'');
+        /* ── sanitize data ── */
+        var extracted=typeof parsed.data_report==='string'?parsed.data_report:'';
         var emptyFields=type==='body_comp'?BC_EMPTY:NUT_EMPTY;
-        var mergedMetrics=Object.assign({},emptyFields,parsed.metriche||{});
-        var draft={id:uid(),date:new Date().toISOString(),reportDate:extracted||new Date().toISOString().slice(0,10),type:type,filename:file.name,analysis:{sommario:parsed.sommario||'',metrics:mergedMetrics,highlights:parsed.highlights||[]},hasPdf:true};
+        var mergedMetrics=Object.assign({},emptyFields,sanitizedM);
+        var draft={id:uid(),date:new Date().toISOString(),reportDate:extracted||new Date().toISOString().slice(0,10),type:type,filename:file.name,analysis:{sommario:sommario,metrics:mergedMetrics,highlights:sanitizedH},hasPdf:true};
         pendingPdfRef.current=b64;
         setPendingReport(draft);
         setPendingMetrics(mergedMetrics);
@@ -1835,16 +1845,17 @@ function CorpoNutri(p){
         latest.analysis.highlights&&latest.analysis.highlights.length>0&&h('div',{style:{background:SURF2,borderRadius:12,padding:'12px 14px',marginBottom:12}},
           h(Lbl,null,'Evidenze chiave'),
           latest.analysis.highlights.map(function(hl,i){
+            var hlStr=typeof hl==='string'?hl:(hl&&hl.text?String(hl.text):JSON.stringify(hl));
             return h('div',{key:i,style:{display:'flex',gap:8,marginBottom:i<latest.analysis.highlights.length-1?6:0,alignItems:'flex-start'}},
               h('span',{style:{color:ACC,flexShrink:0,fontSize:13}},'·'),
-              h('div',{style:{fontSize:12,lineHeight:1.6}},hl)
+              h('div',{style:{fontSize:12,lineHeight:1.6}},hlStr)
             );
           })
         ),
         /* Summary */
         latest.analysis.sommario&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:'12px 14px',marginBottom:16}},
           h(Lbl,null,'Sintesi'),
-          h('div',{style:{fontSize:13,lineHeight:1.7}},latest.analysis.sommario)
+          h('div',{style:{fontSize:13,lineHeight:1.7}},typeof latest.analysis.sommario==='string'?latest.analysis.sommario:JSON.stringify(latest.analysis.sommario))
         )
       ),
       /* ─ Chat ─ */
@@ -1901,6 +1912,24 @@ function CorpoNutri(p){
     )
   );
 }
+
+/* ── error boundary ── */
+var ErrorBoundary=function(p){this.props=p;this.state={err:null};};
+ErrorBoundary.prototype=Object.create(React.Component.prototype);
+ErrorBoundary.prototype.constructor=ErrorBoundary;
+ErrorBoundary.getDerivedStateFromError=function(e){return{err:e};};
+ErrorBoundary.prototype.componentDidCatch=function(e,info){console.error('GymTracker render error:',e,info);};
+ErrorBoundary.prototype.render=function(){
+  if(this.state.err){
+    return h('div',{style:{minHeight:'100vh',background:BG,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 20px',textAlign:'center'}},
+      h('div',{style:{fontSize:44,marginBottom:16}},'⚠️'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,color:'#EF4444',letterSpacing:'0.03em',marginBottom:8}},'Errore imprevisto'),
+      h('div',{style:{fontSize:13,color:MUTED,marginBottom:24,lineHeight:1.7}},'Si è verificato un errore durante il rendering.\nI tuoi dati sono al sicuro.'),
+      h('button',{onClick:function(){window.location.reload();},style:{padding:'13px 28px',borderRadius:10,border:'none',background:ACC,color:ACT,fontWeight:700,fontSize:15,cursor:'pointer'}},'Ricarica app')
+    );
+  }
+  return this.props.children;
+};
 
 /* ── app ── */
 function App(){
@@ -1986,7 +2015,7 @@ function App(){
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(h(App,null));
+ReactDOM.createRoot(document.getElementById('root')).render(h(ErrorBoundary,null,h(App,null)));
 </script>
 </body>
 </html>
