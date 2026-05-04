@@ -28,6 +28,64 @@ textarea,input,button{outline:none;font-family:'Barlow',sans-serif}
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
+/* ── Inizializzazione scheda Luca Garofalo ── */
+(function(){
+  try{
+    var SK='gymtracker_v9';
+    var existing=localStorage.getItem(SK);
+    if(existing){var d=JSON.parse(existing);if(d&&d.schede&&d.schede.length>0)return;}
+  }catch(e){}
+  var progressioneUB=[{sets:3,reps:"6"},{sets:4,reps:"6"},{sets:5,reps:"6"},{sets:4,reps:"5"},{sets:5,reps:"5"},{sets:4,reps:"4"}];
+  var progressioneLB=[{sets:3,reps:"8"},{sets:5,reps:"8"},{sets:4,reps:"6"},{sets:6,reps:"6"},{sets:5,reps:"5"},{sets:4,reps:"4"}];
+  var warmUpEs=[
+    {id:"wu1",nome:"Tapis roulant",tipo:"riscaldamento",durata:10,intensita:"Bassa",gr:"",note:"Velocità 5.0 – Inclinazione 5.0"},
+    {id:"wu2",nome:"Circonduzioni",tipo:"riscaldamento",durata:5,intensita:"Media",gr:"",note:"Collo, spalle, gomiti, polsi"}
+  ];
+  var coreEs=[
+    {id:"cb1",nome:"Crunch inversi a terra",tipo:"standard",sets:3,serie:3,reps:"12",peso:0,recSet:45,recEs:60,rec:45,gr:"Core",note:""},
+    {id:"cb2",nome:"Dragon flag",tipo:"standard",sets:3,serie:3,reps:"6",peso:0,recSet:90,recEs:60,rec:90,gr:"Core",note:""},
+    {id:"cb3",nome:"V-ups gambe tese",tipo:"standard",sets:1,serie:1,reps:"15",peso:0,recSet:0,recEs:60,rec:0,gr:"Core",note:"Al cedimento"},
+    {id:"cb4",nome:"Hyperextension",tipo:"standard",sets:4,serie:4,reps:"10",peso:0,recSet:60,recEs:60,rec:60,gr:"Core",note:""}
+  ];
+  var schede=[
+    {
+      id:"sc_day1",nome:"Day 1 – Upper Body",attiva:true,data:"2025-03-23T00:00:00.000Z",
+      blocchi:[
+        {id:"bl_wu1",nome:"Warm Up",es:warmUpEs.map(function(e){return Object.assign({},e,{id:e.id+"_d1"});})},
+        {id:"bl_cb1",nome:"Core Body Training",es:coreEs.map(function(e){return Object.assign({},e,{id:e.id+"_d1"});})},
+        {id:"bl_ub1",nome:"Upper Body",es:[
+          {id:"ub1",nome:"Panca piana multipower",tipo:"progressivo",peso:0,progressione:progressioneUB,recSet:150,recEs:60,rec:150,serie:3,reps:"6",gr:"Petto",note:""},
+          {id:"ub2",nome:"Croci alla macchina",tipo:"standard",sets:4,serie:4,reps:"10",peso:0,recSet:120,recEs:60,rec:120,gr:"Petto",note:""},
+          {id:"ub3",nome:"Alzate laterali manubri",tipo:"standard",sets:5,serie:5,reps:"12",peso:0,recSet:60,recEs:60,rec:60,gr:"Spalle",note:""},
+          {id:"ub4",nome:"Lat machine supina",tipo:"progressivo",peso:0,progressione:progressioneUB,recSet:150,recEs:60,rec:150,serie:3,reps:"6",gr:"Schiena",note:""},
+          {id:"ub5",nome:"Pulley presa neutra spalle",tipo:"standard",sets:4,serie:4,reps:"10",peso:0,recSet:120,recEs:60,rec:120,gr:"Spalle",note:""},
+          {id:"ub6",nome:"Pulldown corda cavo alto",tipo:"standard",sets:3,serie:3,reps:"12",peso:0,recSet:60,recEs:60,rec:60,gr:"Schiena",note:""},
+          {id:"ub7",nome:"Curl manubri panca 45°",tipo:"standard",sets:3,serie:3,reps:"8",peso:0,recSet:90,recEs:60,rec:90,gr:"Braccia",note:""},
+          {id:"ub8",nome:"French press manubri",tipo:"standard",sets:3,serie:3,reps:"8",peso:0,recSet:90,recEs:60,rec:90,gr:"Braccia",note:""}
+        ]}
+      ]
+    },
+    {
+      id:"sc_day2",nome:"Day 2 – Lower Body",attiva:false,data:"2025-03-23T00:00:00.000Z",
+      blocchi:[
+        {id:"bl_wu2",nome:"Warm Up",es:warmUpEs.map(function(e){return Object.assign({},e,{id:e.id+"_d2"});})},
+        {id:"bl_cb2",nome:"Core Body Training",es:coreEs.map(function(e){return Object.assign({},e,{id:e.id+"_d2"});})},
+        {id:"bl_lb1",nome:"Lower Body",es:[
+          {id:"lb1",nome:"V-Squat",tipo:"progressivo",peso:0,progressione:progressioneLB,recSet:150,recEs:60,rec:150,serie:3,reps:"8",gr:"Gambe",note:""},
+          {id:"lb2",nome:"Stacchi rumeni manubri",tipo:"standard",sets:5,serie:5,reps:"8",peso:0,recSet:120,recEs:60,rec:120,gr:"Gambe",note:""},
+          {id:"lb3",nome:"Leg press",tipo:"standard",sets:4,serie:4,reps:"8",peso:0,recSet:120,recEs:60,rec:120,gr:"Gambe",note:""},
+          {id:"lb4",nome:"Affondi bulgari",tipo:"standard",sets:3,serie:3,reps:"10",peso:0,recSet:90,recEs:60,rec:90,gr:"Gambe",note:""},
+          {id:"lb5",nome:"Leg extension monolat",tipo:"standard",sets:2,serie:2,reps:"12",peso:0,recSet:45,recEs:60,rec:45,gr:"Gambe",note:""},
+          {id:"lb6",nome:"Leg curl",tipo:"standard",sets:4,serie:4,reps:"8",peso:0,recSet:90,recEs:60,rec:90,gr:"Gambe",note:""},
+          {id:"lb7",nome:"Polpacci seduto",tipo:"superset",sets:5,serie:5,reps:"8",peso:0,recSet:60,recEs:60,rec:60,gr:"Gambe",note:"",partner:{nome:"Polpacci in piedi",reps:"12",peso:0}}
+        ]}
+      ]
+    }
+  ];
+  try{localStorage.setItem('gymtracker_v9',JSON.stringify({schede:schede,sessions:[]}));}catch(e){}
+})();
+</script>
+<script>
 'use strict';
 if(window.pdfjsLib){window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
 var h=React.createElement,useState=React.useState,useEffect=React.useEffect,useRef=React.useRef,useCallback=React.useCallback;
@@ -582,7 +640,7 @@ function Home(p){
           h('div',null,
             h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
               isCal&&h('span',{style:{fontSize:10,background:ACC5,color:ACC,padding:'2px 7px',borderRadius:20,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CAL'),
-              h('div',{style:{fontSize:13,fontWeight:500}},isCal?'Calisthenics':(bl?bl.nome:'Sala pesi'))
+              h('div',{style:{fontSize:13,fontWeight:500}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sala pesi'))
             ),
             h('div',{style:{fontSize:11,color:MUTED}},fmtD(s.t0)+' · '+s.dur+'min')
           ),
@@ -646,26 +704,30 @@ function PesiBlocks(p){
       )
     ),
     schede.length>1&&h('div',{style:{fontSize:11,color:MUTED,marginBottom:14}},((si<0?schede.findIndex(function(s){return s.attiva;}):si)+1)+' / '+schede.length+' schede'),
-    scheda.blocchi.map(function(bl){
-      var last=sessions.filter(function(s){return s.bId===bl.id;}).slice(-1)[0];
-      var est=estimateTime(bl);
-      return h(Card,{key:bl.id,onClick:function(){go('live',{bl:bl,sId:scheda.id});},style:{cursor:'pointer'}},
+    (function(){
+      var mergedEs=scheda.blocchi.reduce(function(all,b){return all.concat(b.es);}, []);
+      var mergedBl={id:scheda.id,nome:scheda.nome,es:mergedEs};
+      var last=sessions.filter(function(s){return s.sId===scheda.id;}).slice(-1)[0];
+      var est=estimateTime(mergedBl);
+      var sectionInfo=scheda.blocchi.map(function(b){return b.nome+' ('+b.es.length+')';}).join(' · ');
+      return h(Card,{onClick:function(){go('live',{bl:mergedBl,sId:scheda.id});},style:{cursor:'pointer'}},
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
           h('div',null,
-            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.02em',marginBottom:2}},bl.nome),
+            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.02em',marginBottom:2}},scheda.nome),
             h('div',{style:{display:'flex',alignItems:'center',gap:12}},
-              h('div',{style:{fontSize:11,color:MUTED}},bl.es.length+' esercizi'),
+              h('div',{style:{fontSize:11,color:MUTED}},mergedEs.length+' esercizi'),
               h('div',{style:{display:'flex',alignItems:'center',gap:4,fontSize:11,color:ACC}},
                 h(Icon,{n:'timer',sz:12,c:'var(--acc)'}),
                 '~'+est+'min'
               )
             ),
+            scheda.blocchi.length>1&&h('div',{style:{fontSize:10,color:MUTED,marginTop:2}},sectionInfo),
             last&&h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},'Ultima: '+fmtD(last.t0)+' · '+Math.round(ton(last.es))+'kg')
           ),
           h(Icon,{n:'next',sz:18,c:ACC})
         )
       );
-    })
+    })()
   );
 }
 
@@ -737,11 +799,11 @@ function Summary(p){
 function PesiLive(p){
   var bl=p.bl,sId=p.sId,sessions=p.sessions,onDone=p.onDone,go=p.go;
   var t0R=useRef(null),tRef=useRef(null);
-  var sessDone=sessions.filter(function(s){return s.bId===bl.id;}).length;
+  var sessDone=sessions.filter(function(s){return s.bId===bl.id||s.sId===bl.id;}).length;
   var _1=useState(function(){
     return bl.es.map(function(ex){
       var tipo=ex.tipo||'standard';
-      var last=sessions.filter(function(s){return s.bId===bl.id;}).slice(-1)[0];
+      var last=sessions.filter(function(s){return s.bId===bl.id||s.sId===bl.id;}).slice(-1)[0];
       var lEs=last&&last.es.find(function(le){return le.eId===ex.id;});
       var lp=(lEs&&lEs.serie&&lEs.serie.length>0)?lEs.serie[lEs.serie.length-1].peso:(ex.peso||0);
       if(tipo==='riscaldamento'){return Object.assign({},ex,{completato:false,nota:'',serie:[]});}
@@ -1163,7 +1225,7 @@ function Log(p){
               h('div',{onClick:function(){go('det',{s:s});},style:{flex:1}},
                 h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
                   isCal&&h('span',{style:{fontSize:10,background:ACC5,color:ACC,padding:'2px 7px',borderRadius:20,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CAL'),
-                  h('div',{style:{fontSize:13,fontWeight:500}},isCal?'Calisthenics':(bl?bl.nome:'Sala pesi'))
+                  h('div',{style:{fontSize:13,fontWeight:500}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sala pesi'))
                 ),
                 h('div',{style:{fontSize:11,color:MUTED}},fmtD(s.t0)+' · '+s.dur+'min')
               ),
