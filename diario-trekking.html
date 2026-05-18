@@ -204,13 +204,95 @@
   .btn-reset{font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--red-dim);color:var(--red);background:transparent;cursor:pointer;font-family:var(--font);transition:all .15s;}
   .btn-reset:hover{background:var(--red-dim);}
 
+  /* ─── MOBILE ≤640px ─── */
   @media(max-width:640px){
-    .stats{grid-template-columns:1fr 1fr;}
-    .detail-grid{grid-template-columns:1fr;}
-    .month-grid{grid-template-columns:1fr;}
+
+    /* App shell */
+    .app{padding:0 12px 48px;}
+
+    /* Header */
+    .header{padding:20px 0 14px;}
+    .header-title{font-size:17px;}
+    .header-sub{font-size:11px;}
+
+    /* Stats 2×2 */
+    .stats{grid-template-columns:1fr 1fr;gap:8px;}
+    .stat{padding:11px 12px;}
+    .stat-val{font-size:19px;}
+
+    /* Next banner */
+    .next-banner{padding:10px 12px;}
+
+    /* Tabs — scorrimento orizzontale, niente wrap */
+    .tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;
+          scrollbar-width:none;padding-bottom:2px;}
+    .tabs::-webkit-scrollbar{display:none;}
+    .tab{white-space:nowrap;flex-shrink:0;padding:8px 12px;}
+
+    /* Legenda */
     .legend-grid{grid-template-columns:1fr 1fr;}
-    .ocard-title{font-size:12px;}
-    .schedule{grid-template-columns:1fr 14px 1fr 14px 1fr 14px 1fr;gap:2px;}
+    .legend-toggle{font-size:11px;padding:8px 12px;}
+
+    /* Uscite — card */
+    .ocard-title{font-size:13px;white-space:normal;overflow:visible;text-overflow:unset;}
+    .ocard-header{gap:8px;padding:10px 10px;}
+    .ocard-meta{gap:4px;margin-top:4px;}
+    .badge{font-size:9px;padding:1px 5px;}
+
+    /* Bottone "Fatto" — touch target adeguato */
+    .btn-done{min-height:36px;padding:6px 10px;display:inline-flex;align-items:center;}
+
+    /* Dettaglio accordion — rimuovi indent grande */
+    .ocard-detail{padding:12px 12px 14px 12px;}
+    .detail-grid{grid-template-columns:1fr 1fr;gap:6px;}
+    .dbox{padding:7px 9px;}
+    .dbox-val{font-size:11px;}
+
+    /* Timeline 9:00 — 2×2 su mobile */
+    .schedule{
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+      margin-top:4px;
+    }
+    .sched-arrow{display:none;}     /* frecce nascoste, ordine implicito */
+    .sched-step{padding:8px 4px;}
+    .sched-time{font-size:12px;}
+    .sched-lbl{font-size:8px;}
+    .sched-icon{font-size:12px;}
+    .sched-sub{font-size:8px;}
+
+    /* Drive box */
+    .drive-box{padding:10px 11px;}
+    .drive-head{font-size:11px;}
+    .drive-total{flex-direction:column;align-items:flex-start;gap:2px;}
+    .drive-total-lbl{font-size:10px;}
+    .drive-total-val{font-size:13px;}
+
+    /* Gear */
+    .gear-item{padding:10px 10px;}
+    .gear-checkbox{width:22px;height:22px;min-width:22px;}
+    .gear-item-name{font-size:12px;}
+    .gear-item-note{font-size:10px;}
+    .price-tag{font-size:10px;}
+
+    /* Meteo */
+    .month-grid{grid-template-columns:1fr;}
+
+    /* Tips */
+    .tip-card{padding:13px;}
+
+    /* Detail grids */
+    .legend-grid{grid-template-columns:1fr 1fr;}
+  }
+
+  /* ─── MOBILE STRETTO ≤380px ─── */
+  @media(max-width:380px){
+    .detail-grid{grid-template-columns:1fr;}
+    .legend-grid{grid-template-columns:1fr;}
+    .header-title{font-size:15px;}
+    .stat-val{font-size:17px;}
+    .ocard-header{padding:9px 8px;}
+    .ocard-num{width:24px;height:24px;min-width:24px;font-size:10px;}
     .sched-time{font-size:11px;}
   }
 </style>
