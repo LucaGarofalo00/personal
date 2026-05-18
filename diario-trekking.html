@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diario Trekking — Marsica 2026/27</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f0f0e;
+    --bg2: #181816;
+    --bg3: #202020;
+    --bg4: #2a2a28;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8e6e0;
+    --text2: #9a9790;
+    --text3: #5a5855;
+    --accent: #c8e06b;
+    --accent2: #8fb840;
+    --accent-dim: rgba(200,224,107,0.12);
+    --amber: #e8a53a;
+    --amber-dim: rgba(232,165,58,0.12);
+    --red: #e05555;
+    --red-dim: rgba(224,85,85,0.1);
+    --blue: #5ea8e8;
+    --blue-dim: rgba(94,168,232,0.1);
+    --done: #3a9060;
+    --done-dim: rgba(58,144,96,0.12);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --font: 'DM Sans', -apple-system, sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ─── LAYOUT ─── */
+  .app { max-width: 900px; margin: 0 auto; padding: 0 16px 60px; }
+
+  /* ─── HEADER ─── */
+  .header {
+    padding: 32px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .header-title { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -.3px; }
+  .header-sub { font-size: 13px; color: var(--text2); margin-top: 3px; }
+  .last-update { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+  /* ─── STATS ─── */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
+  .stat {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    transition: border-color .2s;
+  }
+  .stat:hover { border-color: var(--border2); }
+  .stat-val { font-size: 22px; font-weight: 600; color: var(--text); font-family: var(--mono); letter-spacing: -1px; }
+  .stat-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+  .stat-val.green { color: var(--accent); }
+  .stat-val.amber { color: var(--amber); }
+
+  /* ─── TABS ─── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .tab {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: all .15s;
+    position: relative;
+    bottom: -1px;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); background: var(--bg2); }
+  .tab.active {
+    color: var(--text);
+    background: var(--bg);
+    border-color: var(--border);
+    border-bottom-color: var(--bg);
+  }
+
+  /* ─── PANELS ─── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ─── PHASE GROUP ─── */
+  .phase-group { margin-bottom: 28px; }
+  .phase-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text3);
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+
+  /* ─── OUTING CARD ─── */
+  .ocard {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .ocard:hover { border-color: var(--border2); }
+  .ocard.done { border-color: rgba(58,144,96,.25); }
+  .ocard.done .ocard-header { opacity: .7; }
+  .ocard.next-up { border-color: rgba(200,224,107,.3); }
+
+  .ocard-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .ocard-header:hover { background: rgba(255,255,255,.02); }
+
+  .ocard-num {
+    width: 28px; height: 28px; min-width: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    font-family: var(--mono);
+    background: var(--bg3);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .ocard.done .ocard-num { background: var(--done-dim); color: var(--done); border-color: rgba(58,144,96,.3); }
+  .ocard.next-up .ocard-num { background: var(--accent-dim); color: var(--accent); border-color: rgba(200,224,107,.3); }
+
+  .ocard-main { flex: 1; min-width: 0; }
+  .ocard-date { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-bottom: 2px; }
+  .ocard-title { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .done .ocard-title::before { content: '✓ '; color: var(--done); }
+  .ocard-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+
+  .badge {
+    font-size: 10px; padding: 1px 7px; border-radius: 20px;
+    font-family: var(--mono);
+    border: 1px solid;
+  }
+  .badge-E { color: var(--accent); border-color: rgba(200,224,107,.3); background: var(--accent-dim); }
+  .badge-EE { color: var(--amber); border-color: rgba(232,165,58,.3); background: var(--amber-dim); }
+  .badge-T { color: var(--blue); border-color: rgba(94,168,232,.3); background: var(--blue-dim); }
+  .badge-gray { color: var(--text3); border-color: var(--border); background: transparent; }
+  .badge-milestone { color: #e8c53a; border-color: rgba(232,197,58,.3); background: rgba(232,197,58,.1); }
+
+  .ocard-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .btn-done {
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn-done:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .done .btn-done { border-color: rgba(58,144,96,.4); color: var(--done); background: var(--done-dim); }
+  .chevron-icon { color: var(--text3); font-size: 10px; transition: transform .2s; flex-shrink: 0; margin-top: 2px; }
+  .chevron-icon.open { transform: rotate(180deg); }
+
+  /* ─── OUTING DETAIL ─── */
+  .ocard-detail {
+    border-top: 1px solid var(--border);
+    padding: 14px 14px 14px 54px;
+    display: none;
+    background: rgba(0,0,0,.2);
+  }
+  .ocard-detail.open { display: block; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .dbox { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 11px; }
+  .dbox-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+  .dbox-val { font-size: 12px; font-weight: 500; color: var(--text); }
+
+  .detail-note-wrap { margin-top: 12px; }
+  .detail-note-lbl { font-size: 11px; color: var(--text3); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .05em; }
+  .detail-note {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 10px 12px;
+    resize: vertical;
+    min-height: 70px;
+    transition: border-color .15s;
+  }
+  .detail-note:focus { outline: none; border-color: var(--border2); }
+  .detail-note::placeholder { color: var(--text3); }
+
+  .tip-box {
+    border-left: 2px solid var(--accent);
+    padding: 7px 10px;
+    background: var(--accent-dim);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 12px;
+    color: var(--text2);
+    margin: 10px 0;
+  }
+  .warn-box {
+    border-left: 2px solid var(--amber);
+    padding: 7px 10px;
+    background: var(--amber-dim);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 12px;
+    color: var(--text2);
+    margin: 10px 0;
+  }
+  .tip-box b, .warn-box b, .detail-text b { color: var(--text); font-weight: 500; }
+  .detail-text { font-size: 12px; color: var(--text2); line-height: 1.65; }
+
+  /* ─── RATING STARS ─── */
+  .rating-wrap { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .rating-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; }
+  .stars { display: flex; gap: 3px; }
+  .star {
+    font-size: 18px; cursor: pointer; color: var(--bg4);
+    transition: color .1s;
+    user-select: none;
+  }
+  .star.lit { color: var(--amber); }
+  .star:hover { color: var(--amber); }
+
+  /* ─── GEAR PANEL ─── */
+  .gear-phase { margin-bottom: 28px; }
+  .gear-phase-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .gear-phase-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .gear-phase-budget { font-family: var(--mono); font-size: 12px; color: var(--amber); }
+  .gear-progress { height: 3px; background: var(--bg4); border-radius: 2px; margin-bottom: 12px; overflow: hidden; }
+  .gear-progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
+
+  .gear-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+    transition: border-color .15s;
+    cursor: pointer;
+  }
+  .gear-item:hover { border-color: var(--border2); }
+  .gear-item.checked { border-color: rgba(58,144,96,.25); background: rgba(58,144,96,.05); }
+
+  .gear-checkbox {
+    width: 18px; height: 18px; min-width: 18px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all .15s;
+    background: transparent;
+  }
+  .gear-item.checked .gear-checkbox { background: var(--done); border-color: var(--done); color: #fff; }
+
+  .gear-item-info { flex: 1; }
+  .gear-item-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .gear-item.checked .gear-item-name { text-decoration: line-through; color: var(--text3); }
+  .gear-item-note { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .gear-item-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .price-tag { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+
+  /* ─── MONTHLY GUIDE ─── */
+  .month-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .month-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .month-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .month-temp { font-family: var(--mono); font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .month-tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .month-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--border2); color: var(--text2); }
+  .month-tag.good { border-color: rgba(200,224,107,.3); color: var(--accent); background: var(--accent-dim); }
+  .month-tag.warn { border-color: rgba(232,165,58,.3); color: var(--amber); background: var(--amber-dim); }
+  .month-tag.bad { border-color: rgba(224,85,85,.3); color: var(--red); background: var(--red-dim); }
+  .month-route { font-size: 11px; color: var(--text2); margin-top: 6px; }
+  .month-route b { color: var(--text); font-weight: 500; }
+
+  /* ─── TIPS ─── */
+  .tip-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .tip-card-title { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .tip-num { width: 22px; height: 22px; border-radius: 50%; background: var(--bg4); border: 1px solid var(--border2); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-family: var(--mono); color: var(--text2); flex-shrink: 0; }
+  .tip-card-body { font-size: 12px; color: var(--text2); line-height: 1.7; }
+  .tip-card-body b { color: var(--text); font-weight: 500; }
+
+  /* ─── PROGRESS BAR ─── */
+  .overall-progress { margin-bottom: 24px; }
+  .progress-bar-wrap { height: 6px; background: var(--bg4); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 3px; transition: width .5s ease; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+  /* ─── FOOTER ─── */
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .footer-text { font-size: 12px; color: var(--text3); }
+  .btn-reset { font-size: 11px; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--red-dim); color: var(--red); background: transparent; cursor: pointer; font-family: var(--font); transition: all .15s; }
+  .btn-reset:hover { background: var(--red-dim); }
+
+  /* ─── NEXT UP BANNER ─── */
+  .next-banner {
+    background: var(--accent-dim);
+    border: 1px solid rgba(200,224,107,.25);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .next-banner-icon { font-size: 18px; }
+  .next-banner-text { flex: 1; }
+  .next-banner-title { font-size: 13px; font-weight: 500; color: var(--accent); }
+  .next-banner-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+
+  /* ─── UTILITIES ─── */
+  .section-sep { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .text-accent { color: var(--accent); }
+  .text-amber { color: var(--amber); }
+
+  /* ─── LEGEND ─── */
+  .legend-wrap { margin-bottom: 20px; }
+  .legend-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px; font-weight: 500; color: var(--text2);
+    transition: border-color .15s;
+  }
+  .legend-toggle:hover { border-color: var(--border2); color: var(--text); }
+  .legend-body { display: none; padding: 10px 0 2px; }
+  .legend-body.open { display: block; }
+  .legend-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .legend-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    background: var(--bg2);
+  }
+  .legend-badge { font-size: 13px; font-weight: 600; margin-bottom: 4px; font-family: var(--mono); }
+  .legend-name { font-size: 11px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .legend-desc { font-size: 10px; color: var(--text3); line-height: 1.5; }
+  .lb-T  { color: var(--blue); }
+  .lb-E  { color: var(--accent); }
+  .lb-Ep { color: #a0c840; }
+  .lb-EE { color: var(--amber); }
+  .lb-EEA{ color: var(--red); }
+
+  /* ─── DRIVE INFO ─── */
+  .drive-box {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin: 6px 0 10px;
+  }
+  .drive-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .drive-info { flex: 1; }
+  .drive-row { font-size: 12px; color: var(--text2); margin-bottom: 3px; }
+  .drive-row b { color: var(--text); font-weight: 500; }
+  .drive-row.total { color: var(--amber); font-weight: 500; font-size: 12px; margin-top: 4px; border-top: 1px solid var(--border); padding-top: 4px; }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .month-grid { grid-template-columns: 1fr; }
+    .legend-grid { grid-template-columns: 1fr 1fr; }
+    .ocard-title { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-title">🏔 Diario Trekking — Marsica 2026/27</div>
+        <div class="header-sub">Piano annuale · Da principianti E a livello EE · Roma → Abruzzo</div>
+      </div>
+      <div class="last-update" id="lastUpdate">—</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val green" id="statDone">0/24</div>
+      <div class="stat-lbl">Uscite completate</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val amber" id="statDislivello">0 m</div>
+      <div class="stat-lbl">Dislivello totale ↑</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statKm">0 km</div>
+      <div class="stat-lbl">Km percorsi</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statGear">0%</div>
+      <div class="stat-lbl">Gear acquistato</div>
+    </div>
+  </div>
+
+  <!-- NEXT UP BANNER -->
+  <div class="next-banner" id="nextBanner">
+    <div class="next-banner-icon">📍</div>
+    <div class="next-banner-text">
+      <div class="next-banner-title" id="nextTitle">Caricamento...</div>
+      <div class="next-banner-sub" id="nextSub"></div>
+    </div>
+  </div>
+
+  <!-- LEGENDA DIFFICOLTÀ -->
+  <div class="legend-wrap">
+    <div class="legend-toggle" onclick="toggleLegend()">
+      <span>📖 Leggenda livelli di difficoltà CAI</span>
+      <span id="legend-chev" style="font-size:9px;transition:transform .2s">▼</span>
+    </div>
+    <div class="legend-body" id="legend-body">
+      <div class="legend-grid">
+        <div class="legend-item">
+          <div class="legend-badge lb-T">T</div>
+          <div class="legend-name">Turistico</div>
+          <div class="legend-desc">Strade, mulattiere o sentieri pianeggianti. Nessun rischio, adatto a tutti. Scarpe da ginnastica possibili. Dislivello &lt;200m.</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-badge lb-E">E</div>
+          <div class="legend-name">Escursionistico</div>
+          <div class="legend-desc">Sentieri su terreno vario. Richiede buona forma fisica, scarpe da trekking, orientamento base. Il vostro livello di partenza.</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-badge lb-Ep">E+</div>
+          <div class="legend-name">Escursionistico +</div>
+          <div class="legend-desc">Come E ma con tratti meno segnalati o fuori sentiero. Richiede orientamento con GPS, esperienza su terreno irregolare.</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-badge lb-EE">EE</div>
+          <div class="legend-name">Escursionisti Esperti</div>
+          <div class="legend-desc">Terreno tecnico, tratti esposti o instabili. Bastoncini obbligatori, ottima preparazione fisica, orientamento avanzato.</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-badge lb-EEA">EEA</div>
+          <div class="legend-name">EE Attrezzati</div>
+          <div class="legend-desc">Vie ferrate: imbrago, longe, casco obbligatori. Non incluso in questo piano annuale — obiettivo futuro.</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3);padding:0 2px">
+        ⏱ <b style="color:var(--text2)">Regola dei tempi CAI:</b> calcolo base è 300-350m dislivello/ora in salita e 500m/ora in discesa, +1 min ogni 80m di distanza orizzontale. I tempi nel diario sono già calcolati per escursionisti di medio livello.
+        I tempi di viaggio sono calcolati partendo da <b style="color:var(--text2)">Capistrello (AQ)</b>.
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('cal')">Calendario</div>
+    <div class="tab" onclick="showTab('gear')">Attrezzatura</div>
+    <div class="tab" onclick="showTab('meteo')">Meteo & Stagioni</div>
+    <div class="tab" onclick="showTab('tips')">Tips</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       PANEL: CALENDARIO
+  ══════════════════════════════════════════════ -->
+  <div id="panel-cal" class="panel active">
+
+    <div class="overall-progress">
+      <div class="progress-label">
+        <span>Progressione annuale</span>
+        <span id="progressLabel">0 / 24 uscite</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- FASE 1: PRIMAVERA -->
+    <div class="phase-group">
+      <div class="phase-label">🌸 Fase 1 — Primavera 2026 (Maggio–Giugno) · Livello E base</div>
+      <div id="outings-phase1"></div>
+    </div>
+
+    <!-- FASE 2: ESTATE -->
+    <div class="phase-group">
+      <div class="phase-label">☀ Fase 2 — Estate 2026 (Luglio–Agosto) · Livello E consolidato</div>
+      <div id="outings-phase2"></div>
+    </div>
+
+    <!-- FASE 3: AUTUNNO -->
+    <div class="phase-group">
+      <div class="phase-label">🍂 Fase 3 — Autunno 2026 (Settembre–Ottobre) · Livello EE base</div>
+      <div id="outings-phase3"></div>
+    </div>
+
+    <!-- FASE 4: INVERNO -->
+    <div class="phase-group">
+      <div class="phase-label">❄ Fase 4 — Inverno 2026/27 (Novembre–Febbraio) · Mantenimento</div>
+      <div id="outings-phase4"></div>
+    </div>
+
+    <!-- FASE 5: 2027 -->
+    <div class="phase-group">
+      <div class="phase-label">🏔 Fase 5 — Primavera 2027 · Obiettivi avanzati EE</div>
+      <div id="outings-phase5"></div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       PANEL: ATTREZZATURA
+  ══════════════════════════════════════════════ -->
+  <div id="panel-gear" class="panel">
+    <div id="gear-list"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       PANEL: METEO
+  ══════════════════════════════════════════════ -->
+  <div id="panel-meteo" class="panel">
+    <div style="margin-bottom:16px;font-size:13px;color:var(--text2)">Temperature medie: <b style="color:var(--text)">valle (Avezzano ~700m)</b> e <b style="color:var(--text)">in quota (1500–2000m)</b>. Controllate sempre <a href="https://www.meteoam.it/it/meteo-citta/avezzano" style="color:var(--accent)" target="_blank">Meteo Aeronautica</a> e <a href="https://www.mountain-forecast.com" style="color:var(--accent)" target="_blank">Mountain Forecast</a> 48h prima.</div>
+    <div class="month-grid" id="monthGrid"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       PANEL: TIPS
+  ══════════════════════════════════════════════ -->
+  <div id="panel-tips" class="panel">
+    <div id="tips-list"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-text">Ultimo aggiornamento: <span id="footerDate">—</span></div>
+    <button class="btn-reset" onclick="resetAll()">Reset tutti i progressi</button>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════════════
+const OUTINGS = [
+  // FASE 1
+  { id:1, phase:1, date:"Sab 30 maggio 2026", title:"Anello Castrovalva da Anversa degli Abruzzi", diff:"E", dislivello:425, km:8.3, ore:"3–4h", milestone:"⭐ Prima uscita vera",
+    drive:{via:"A25 dir. Pescara → uscita Cocullo → SS479 Anversa",km:"~37 km",mins:"~40 min",partenza:"7:30",arrivo:"8:10",ar:"1h 20min",tot:"~5.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/sentiero-geologico-delle-gole-del-sagittario-anello-anversa-degli-abruzzi-castrovalva-19887918",label:"Anello Gole Sagittario – Castrovalva"},{url:"https://it.wikiloc.com/percorsi-escursionismo/anello-anversa-castrovalva-9484676",label:"Anello Anversa–Castrovalva (variante)"}],
+    boxes:[{l:"Partenza",v:"Anversa degli Abruzzi (442m) — A25 uscita Cocullo"},{l:"Quota max",v:"~870m — Borgo rupestre Castrovalva"},{l:"Segnavia",v:"Sentiero 18 (salita) + Sentiero 19 (discesa) — CAI"},{l:"Punti acqua",v:"Fontana al paese — portate 1.5L a testa"}],
+    tip:"Focus: trovate il vostro ritmo di salita. Passo costante, respirate con il naso, parlate normalmente. Se non riuscite a parlare: andate troppo veloci.",
+    warn:"Partenza max ore 8:00. Avvisate sempre qualcuno del percorso e orario di rientro." },
+  { id:2, phase:1, date:"Sab 13 giugno 2026", title:"Pereto → Santuario San Martino + Boschi Carseolani", diff:"T", dislivello:280, km:7, ore:"2.5h",
+    drive:{via:"SP57 → Tagliacozzo → Carsoli → SP26 Pereto",km:"~50 km",mins:"~55 min",partenza:"8:00",arrivo:"8:55",ar:"1h 50min",tot:"~5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi/outdoor/italia/abruzzo/pereto",label:"Tutti i percorsi di Pereto (Wikiloc)"}],
+    boxes:[{l:"Partenza",v:"Borgo di Pereto (865m) — A24 uscita Carsoli"},{l:"Quota max",v:"~1145m — Santuario San Martino"},{l:"Segnavia",v:"Sentieri CAI Tagliacozzo (manutenuti)"},{l:"Punti acqua",v:"Fontana a Pereto + fontanile sul percorso"}],
+    tip:"Focus: tecnica di discesa. Ginocchia leggermente flesse, tallone prima, passi corti. Se non avete bastoncini — sentirete la loro mancanza.", warn:null },
+  { id:3, phase:1, date:"Sab 27 giugno 2026", title:"Piani di Pezza → Rifugio Sebastiani (+ Costone opzionale)", diff:"E", dislivello:650, km:9, ore:"3.5–4h", milestone:"⭐ Primo dislivello reale 650m",
+    drive:{via:"Avezzano → Celano → SS696 → Rocca di Mezzo → Piani di Pezza (5km sterrata)",km:"~55 km",mins:"~65 min",partenza:"7:30",arrivo:"8:35",ar:"2h 10min",tot:"~6.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/rifugio-sebastiani-dai-piani-di-pezza-17738790",label:"Rifugio Sebastiani dai Piani di Pezza"},{url:"https://it.wikiloc.com/percorsi-escursionismo/piani-di-pezza-rifugio-sebastiani-81795032",label:"Traccia alternativa A/R"}],
+    boxes:[{l:"Partenza",v:"Capo di Pezza (1535m) — 5km sterrata dai Piani di Pezza"},{l:"Rifugio",v:"Sebastiani (2102m) — Prenotare: +39 368 279463"},{l:"Segnavia",v:"CAI 1C poi 1Cbis"},{l:"Quota max",v:"Costone 2271m (+30 min opzionali)"}],
+    tip:"Focus: gestione quota. A 2000m l'aria è più rarefatta — normale sentire respiro più corto. Rallentate, non fermatevi bruscamente. Bevete di più.",
+    warn:"Partenza tassativa ore 7:30 — temporali pomeridiani frequenti in giugno." },
+  { id:4, phase:1, date:"Sab 11 luglio 2026", title:"Pereto → Monte Fontecellese (sentieri S1/S2)", diff:"E", dislivello:760, km:8, ore:"4–5h", milestone:"⭐ Nuovo record 760m",
+    drive:{via:"SP57 → Tagliacozzo → Carsoli → SP26 Pereto",km:"~50 km",mins:"~55 min",partenza:"7:00",arrivo:"7:55",ar:"1h 50min",tot:"~7.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/castello-di-pereto-fonte-fontecellese-e-monte-fontecellese-da-pereto-200174692",label:"Pereto – Fonte Fontecellese – Monte Fontecellese"},{url:"https://it.wikiloc.com/percorsi-escursionismo/carsoli-monte-fontecellese-pereto-carsoli-15205445",label:"Variante Carsoli – Fontecellese – Pereto"}],
+    boxes:[{l:"Partenza",v:"Pereto borgo (865m)"},{l:"Quota max",v:"Monte Fontecellese 1623m"},{l:"Segnavia",v:"S1 salita, S2 discesa (anello)"},{l:"Punti acqua",v:"Fontanile Fonticelli a metà salita"}],
+    tip:"Focus: gestione zaino in salita lunga. Consumate carboidrati ogni 90 min anche senza fame.", warn:"Partenza ore 7:00 — luglio ha temporali frequenti dal primo pomeriggio." },
+  // FASE 2
+  { id:5, phase:2, date:"Sab 25 luglio 2026", title:"Santuario Madonna Bisognosi → Cima Vallevona", diff:"E", dislivello:775, km:12, ore:"5h",
+    drive:{via:"SP57 → Tagliacozzo → Carsoli → SP26 → Rocca di Botte → Santuario",km:"~52 km",mins:"~60 min",partenza:"6:30",arrivo:"7:30",ar:"2h",tot:"~7.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/santuario-madonna-dei-bisognosi-cima-vallevona-88406942",label:"Bisognosi – Cima Vallevona A/R"},{url:"https://it.wikiloc.com/percorsi-escursionismo/cima-vallevona-dal-santuario-di-s-maria-dei-bisognosi-125735401",label:"Variante invernale con Prato dei Frati"}],
+    boxes:[{l:"Partenza",v:"Santuario Bisognosi (1043m) — Rocca di Botte, SP26 da Carsoli"},{l:"Quota max",v:"Cima Vallevona 1818m"},{l:"Variante",v:"+ Montagnole (12.4km) se avete ancora energie"},{l:"Punti acqua",v:"Sorgente al santuario — nessuna in quota (2L+)"}],
+    tip:"Visitate il santuario romanico (XII sec.) prima di partire — vale 30 min. Il crinale aereo verso Vallevona ha vista sulla Piana del Cavaliere e il Fucino.", warn:"Luglio: partenza ore 6:30. 12km A/R sono lunghi — calcolate bene i tempi." },
+  { id:6, phase:2, date:"Sab 8 agosto 2026", title:"Piani di Pezza → Sebastiani + Monte Costone (2271m)", diff:"E", dislivello:736, km:10, ore:"4h", milestone:"⭐ Prima volta sopra i 2000m",
+    drive:{via:"Avezzano → Celano → SS696 → Rocca di Mezzo → Piani di Pezza",km:"~55 km",mins:"~65 min",partenza:"7:00",arrivo:"8:05",ar:"2h 10min",tot:"~6.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/rifugio-sebastiani-e-costone-dai-piani-di-pezza-13716976",label:"Rifugio Sebastiani + Costone"},{url:"https://it.wikiloc.com/percorsi-escursionismo/anello-rifugio-sebastiani-78367808",label:"Anello Rifugio Sebastiani (5 cime)"}],
+    boxes:[{l:"Partenza",v:"Capo di Pezza (1535m)"},{l:"Target",v:"Costone orientale 2271m via Rifugio Sebastiani"},{l:"Segnavia",v:"1C → 1Cbis → senza numero al rifugio"},{l:"Rifugio",v:"Sosta obbligatoria prima del Costone"}],
+    tip:"Differenza dalla uscita 3: stavolta salite anche al Costone (2271m, +30 min). Vista sul Velino versante NE, il più scenografico.", warn:"Agosto: sentieri affollati sabato. Partenza ore 7:00 per trovare parcheggio." },
+  { id:7, phase:2, date:"Sab 22 agosto 2026", title:"Fontecellese — variante selvaggia (anello esteso)", diff:"E+", dislivello:760, km:10, ore:"5h",
+    drive:{via:"SP57 → Tagliacozzo → Carsoli → SP26 Pereto",km:"~50 km",mins:"~55 min",partenza:"7:00",arrivo:"7:55",ar:"1h 50min",tot:"~7.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/castello-di-pereto-fonte-fontecellese-e-monte-fontecellese-da-pereto-200174692",label:"Pereto – Fontecellese (base)"},{url:"https://it.wikiloc.com/percorsi-escursionismo/giro-del-monte-fontecellese-27974384",label:"Giro selvaggio del Fontecellese (da Marsia)"}],
+    boxes:[{l:"Partenza",v:"Pereto (865m)"},{l:"Variante",v:"Anello esteso via Cimata Mazzacane (1657m)"},{l:"Navigazione",v:"Traccia Wikiloc offline obbligatoria (tratti meno segnati)"},{l:"Terreno",v:"Tratti meno segnalati — primo esercizio orientamento"}],
+    tip:"Focus: orientamento autonomo. Prima di ogni incrocio senza segnale, controllate Wikiloc. Primo passo da E a E+.", warn:null },
+  { id:8, phase:2, date:"Sab 5 settembre 2026", title:"Chalet Sirente → Altare della Neviera (primo EE)", diff:"EE", dislivello:550, km:8, ore:"4h", milestone:"⭐ Primo percorso EE",
+    drive:{via:"Avezzano → Celano → SP56 Ovindoli → SP25 Chalet del Sirente",km:"~43 km",mins:"~55 min",partenza:"7:30",arrivo:"8:25",ar:"1h 50min",tot:"~6.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/neviera-del-sirente-51254511",label:"Neviera del Sirente (anello dal Chalet)"},{url:"https://it.wikiloc.com/percorsi-escursionismo/monte-sirente-torretta-e-neviera-dallo-chalet-del-sirente-secinaro-2025-225945542",label:"Sirente – Torretta e Neviera 2025"}],
+    boxes:[{l:"Partenza",v:"Chalet del Sirente (1150m) — SP25 da Ovindoli"},{l:"Quota max",v:"Altare della Neviera 2204m"},{l:"Segnavia",v:"CAI N°18 in faggeta poi ambiente aperto"},{l:"Bastoncini",v:"OBBLIGATORI — tratti su terreno detritico instabile"}],
+    tip:"Focus: terreno instabile. Ghiaie e detriti richiedono passi più lenti, peso centrato, bastoncini. Se non li avete ancora — comprateli prima di questa uscita.",
+    warn:"Nessun punto acqua sul percorso. Portate 2L a testa." },
+  // FASE 3
+  { id:9, phase:3, date:"Sab 19 settembre 2026", title:"Vallevona + variante Montagnole (uscita lunga)", diff:"E", dislivello:800, km:14, ore:"6h", milestone:"⭐ Prima uscita lunga 6h",
+    drive:{via:"SP57 → Tagliacozzo → Carsoli → SP26 → Rocca di Botte → Santuario",km:"~52 km",mins:"~60 min",partenza:"6:30",arrivo:"7:30",ar:"2h",tot:"~8.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/cima-vallevona-dal-santuario-di-s-maria-dei-bisognosi-125735401",label:"Vallevona dal Santuario (versione lunga)"},{url:"https://it.wikiloc.com/percorsi-escursionismo/santuario-madonna-dei-bisognosi-cima-vallevona-88406942",label:"A/R Bisognosi – Vallevona"}],
+    boxes:[{l:"Partenza",v:"Santuario Bisognosi (1043m)"},{l:"Itinerario",v:"Torretta (6.8km) → Vallevona (8.6km) → Montagnole (12.4km)"},{l:"Abbigliamento",v:"Strati — mattino fresco a 1800m, guanti leggeri"},{l:"Meteo",v:"Settembre stabile — verificare la mattina presto"}],
+    tip:"Focus: gestione energetica su percorso lungo. Mangiate ogni 90 min anche senza fame, bevete ogni 20 min.", warn:null },
+  { id:10, phase:3, date:"Sab 3 ottobre 2026", title:"Altare Neviera + variante cresta Monte di Canale", diff:"EE", dislivello:580, km:9, ore:"4.5h",
+    drive:{via:"Avezzano → Celano → SP56 Ovindoli → SP25 Chalet del Sirente",km:"~43 km",mins:"~55 min",partenza:"7:30",arrivo:"8:25",ar:"1h 50min",tot:"~7h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/anello-del-sirente-11279476",label:"Anello del Sirente (cresta completa)"},{url:"https://it.wikiloc.com/percorsi-alpinismo/monte-di-canale-dallo-chalet-sirente-per-la-neviera-4767172",label:"Monte di Canale via Neviera"}],
+    boxes:[{l:"Partenza",v:"Chalet del Sirente (1150m)"},{l:"Variante",v:"Dopo Altare Neviera: cresta verso Monte di Canale (2151m)"},{l:"Abbigliamento",v:"Strati completi. Possibile brina mattutina."},{l:"Scarponi",v:"Gore-Tex obbligatori — terreno umido/brina"}],
+    tip:"Conoscete già il percorso base — ora spingete oltre. Colori autunnali + cresta aperta = uscita memorabile.", warn:"Da ottobre possibili gelate notturne. Scarponi impermeabili obbligatori." },
+  { id:11, phase:3, date:"Sab 17 ottobre 2026", title:"Fontecellese in autunno — faggeta oro (benchmark)", diff:"E", dislivello:760, km:8, ore:"4.5h",
+    drive:{via:"SP57 → Tagliacozzo → Carsoli → SP26 Pereto",km:"~50 km",mins:"~55 min",partenza:"7:00",arrivo:"7:55",ar:"1h 50min",tot:"~7h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/castello-di-pereto-fonte-fontecellese-e-monte-fontecellese-da-pereto-200174692",label:"Pereto – Monte Fontecellese"},{url:"https://it.wikiloc.com/percorsi-escursionismo/carsoli-monte-fontecellese-pereto-carsoli-15205445",label:"Variante da Carsoli"}],
+    boxes:[{l:"Partenza",v:"Pereto (865m)"},{l:"Benchmark",v:"Confrontate il tempo con l'uscita 4 di luglio"},{l:"Momento",v:"Faggeta dei Carseolani in piena colorazione"},{l:"Meteo",v:"Verificare 48h prima — ottobre variabile"}],
+    tip:"Annotate tempo di salita, soste, come vi sentite. Se a luglio ci avete messo 2h30m, a ottobre dovreste farcela in 2h.", warn:null },
+  { id:12, phase:3, date:"Sab 31 ottobre 2026", title:"Rosciolo → Santa Maria in Valle Porclaneta (chiusura stagione)", diff:"T", dislivello:200, km:6, ore:"2h",
+    drive:{via:"Avezzano → Magliano dei Marsi → Rosciolo (SS578)",km:"~25 km",mins:"~30 min",partenza:"9:00",arrivo:"9:30",ar:"1h",tot:"~3.5h"},
+    boxes:[{l:"Piano A",v:"Rosciolo → S.Maria Valle Porclaneta (chiesa romanica XII sec., 1022m)"},{l:"Piano B",v:"Lago Sinizzo (San Benedetto dei Marsi) — pianeggiante, se piove"},{l:"Nota",v:"Uscita 'chiusura stagione' — dislivello basso intenzionalmente"},{l:"Stats",v:"Avete fatto ~8500m dislivello cumulato — siete E/EE"}],
+    tip:"Fine stagione intensa: 12 uscite, ~8500m cumulati. Siete ufficialmente escursionisti di livello E-EE. Prendetevi 2 settimane di pausa attiva.", warn:null },
+  // FASE 4
+  { id:13, phase:4, date:"Sab 14 novembre 2026", title:"Cammino Mariano dei Marsi — tappa Magliano→Rosciolo", diff:"T", dislivello:300, km:9, ore:"3h",
+    drive:{via:"Avezzano → Magliano dei Marsi (SS578)",km:"~22 km",mins:"~25 min",partenza:"9:00",arrivo:"9:25",ar:"50min",tot:"~4h"},
+    boxes:[{l:"Tipo",v:"Tappa 4 Cammino Mariano dei Marsi — storico"},{l:"Percorso",v:"Magliano de'Marsi → Rosciolo, 9km segnalato"},{l:"Vista",v:"Valle con sfondo sul Velino"},{l:"Note",v:"Adatto con meteo variabile — bassa quota"}], tip:"Cammino circolare 157km in 11 tappe — potete fare singole tappe come day-hike.", warn:null },
+  { id:14, phase:4, date:"Sab 28 novembre 2026", title:"Cammino dei Briganti — Cartore → Valle Porclaneta", diff:"E", dislivello:280, km:8, ore:"3h",
+    drive:{via:"Avezzano → Magliano dei Marsi → Cartore (SS578)",km:"~30 km",mins:"~35 min",partenza:"9:00",arrivo:"9:35",ar:"1h 10min",tot:"~4.5h"},
+    boxes:[{l:"Tipo",v:"Tappa 4 Cammino dei Briganti — storico"},{l:"Percorso",v:"Cartore (944m) → S.Maria Valle Porclaneta (8km)"},{l:"Dislivelli",v:"Salita 280m, discesa 330m"},{l:"Fauna",v:"Possibile avvistamento grifoni in volo"}], tip:"Percorso che ripercorre i sentieri della Banda di Cartore — storia dei briganti marsicani post-unità d'Italia.", warn:null },
+  { id:15, phase:4, date:"Sab 12 dicembre 2026", title:"Prima ciaspolata — Piani di Pezza (guidata CAI)", diff:"E", dislivello:200, km:5, ore:"2.5h", milestone:"⭐ Primo trekking invernale",
+    drive:{via:"Avezzano → Celano → SS696 → Rocca di Mezzo → Piani di Pezza",km:"~55 km",mins:"~65 min",partenza:"8:00",arrivo:"9:05",ar:"2h 10min",tot:"~5h"},
+    boxes:[{l:"Organizzatore",v:"CAI Avezzano (0863-412439) o CAI Tagliacozzo"},{l:"Ciaspole",v:"Noleggio in loco 10–15€/giorno"},{l:"Abbigliamento",v:"3 strati, guanti caldi, ghette impermeabili"},{l:"Consiglio",v:"Prima ciaspolata con guida: il modo migliore per imparare"}], tip:"Ottima occasione per conoscere altri escursionisti e imparare da guide esperte. Le comunità CAI sono ricchissime.", warn:null },
+  { id:16, phase:4, date:"Sab 9 gennaio 2027", title:"Ciaspolata Campo Felice", diff:"E", dislivello:200, km:5, ore:"2.5h",
+    drive:{via:"Avezzano → Celano → A24 uscita Tornimparte → Campo Felice",km:"~50 km",mins:"~55 min",partenza:"8:00",arrivo:"8:55",ar:"1h 50min",tot:"~5h"},
+    boxes:[{l:"Zona",v:"Altopiano di Campo Felice (1500m s.l.m.)"},{l:"Vista",v:"Panorama sul gruppo del Velino innevato"},{l:"Come",v:"Ciaspole noleggiate in loco o proprie"},{l:"Note",v:"Possibile usare seggiovia se aperta"}], tip:null, warn:null },
+  { id:17, phase:4, date:"Sab 23 gennaio 2027", title:"Valle Roveto / Lago di Luco dei Marsi", diff:"T", dislivello:100, km:6, ore:"2h",
+    drive:{via:"Capistrello → Valle Roveto SP83 (vicino!) / SS83 → Luco dei Marsi",km:"~10–18 km",mins:"~15–25 min",partenza:"9:30",arrivo:"9:50",ar:"40min",tot:"~3h"},
+    boxes:[{l:"Tipo",v:"Passeggiata lacustre e fluviale — bassa quota"},{l:"Zona",v:"Valle Roveto, Lago di Luco dei Marsi (AQ)"},{l:"Note",v:"Uscita di mantenimento invernale — dislivello minimo"},{l:"Alternativa",v:"Passeggiata al Lago Sinizzo (San Benedetto dei Marsi)"}], tip:null, warn:null },
+  { id:18, phase:4, date:"Sab 6 febbraio 2027", title:"Ciaspolata Piani di Pezza (bis — autonomi)", diff:"E", dislivello:300, km:6, ore:"3h",
+    drive:{via:"Avezzano → Celano → SS696 → Rocca di Mezzo → Piani di Pezza",km:"~55 km",mins:"~65 min",partenza:"8:00",arrivo:"9:05",ar:"2h 10min",tot:"~5.5h"},
+    boxes:[{l:"Partenza",v:"Capo di Pezza (1535m)"},{l:"Obiettivo",v:"Autonomi con le ciaspole — senza guida"},{l:"Segnavia",v:"Segnavia CAI 1C iniziale — poi piana innevata"},{l:"Note",v:"Prima ciaspolata in autonomia"}], tip:"A questo punto siete autonomi con le ciaspole. Godete la piana innevata che d'estate conoscete già a memoria.", warn:null },
+  { id:19, phase:4, date:"Sab 20 febbraio 2027", title:"Escursione bassa quota Marsica (preparazione primavera)", diff:"T", dislivello:200, km:7, ore:"2.5h",
+    drive:{via:"Flessibile — Magliano dei Marsi o Valle Roveto",km:"~20–30 km",mins:"~25–35 min",partenza:"9:00",arrivo:"9:30",ar:"1h",tot:"~4h"},
+    boxes:[{l:"Flessibile",v:"Cammino dei Briganti tappa breve o Valle Roveto"},{l:"Obiettivo",v:"Preparazione psicologica alla primavera"},{l:"Focus",v:"Verificate che l'attrezzatura sia in ordine dopo l'inverno"},{l:"Note",v:"Lubrificare le giunture degli scarponi se necessario"}], tip:null, warn:null },
+  // FASE 5
+  { id:20, phase:5, date:"Sab 6 marzo 2027", title:"Riapertura stagione — Castrovalva BENCHMARK", diff:"E", dislivello:425, km:8.3, ore:"3–4h", milestone:"🔄 Benchmark: quanto siete cresciuti?",
+    drive:{via:"A25 dir. Pescara → uscita Cocullo → SS479 Anversa",km:"~37 km",mins:"~40 min",partenza:"7:30",arrivo:"8:10",ar:"1h 20min",tot:"~5.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/sentiero-geologico-delle-gole-del-sagittario-anello-anversa-degli-abruzzi-castrovalva-19887918",label:"Anello Castrovalva (stesso della uscita 1)"}],
+    boxes:[{l:"Percorso",v:"Identico all'uscita 1 di maggio 2026"},{l:"Obiettivo",v:"Misurate il vostro miglioramento in 10 mesi"},{l:"Aspettativa",v:"Dovreste sentirlo molto più facile"},{l:"Note",v:"Annotate tempo e sensazioni per confronto"}], tip:"Il percorso del debutto — se in maggio 2026 arrivavate col fiatone, ora dovrebbe essere una passeggiata. Il progresso in un anno è enorme.", warn:null },
+  { id:21, phase:5, date:"Sab 20 marzo 2027", title:"Fontecellese — puntate al record personale", diff:"E", dislivello:760, km:8, ore:"4h",
+    drive:{via:"SP57 → Tagliacozzo → Carsoli → SP26 Pereto",km:"~50 km",mins:"~55 min",partenza:"7:00",arrivo:"7:55",ar:"1h 50min",tot:"~6.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/castello-di-pereto-fonte-fontecellese-e-monte-fontecellese-da-pereto-200174692",label:"Pereto – Monte Fontecellese"}],
+    boxes:[{l:"Partenza",v:"Pereto (865m)"},{l:"Obiettivo",v:"Record personale di tempo in salita"},{l:"Confronto",v:"Uscite 4 (luglio) e 11 (ottobre)"},{l:"Allenamento",v:"Riflesso di mesi di palestra specifica"}], tip:"Dopo inverno di allenamento mirato (step-up, affondi, tapis inclinato), dovreste scendere significativamente sotto i tempi 2026.", warn:null },
+  { id:22, phase:5, date:"Sab 3 aprile 2027", title:"Altare Neviera → Monte di Canale (2151m) anello lungo", diff:"EE", dislivello:700, km:12, ore:"5.5h",
+    drive:{via:"Avezzano → Celano → SP56 Ovindoli → SP25 Chalet del Sirente",km:"~43 km",mins:"~55 min",partenza:"7:30",arrivo:"8:25",ar:"1h 50min",tot:"~9h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-alpinismo/monte-di-canale-dallo-chalet-sirente-per-la-neviera-4767172",label:"Monte di Canale via Neviera"},{url:"https://it.wikiloc.com/percorsi-escursionismo/anello-del-sirente-11279476",label:"Anello Sirente (cresta completa)"}],
+    boxes:[{l:"Partenza",v:"Chalet del Sirente (1150m)"},{l:"Obiettivo",v:"Anello completo Altare Neviera + Monte di Canale"},{l:"Funzione",v:"Prova generale per l'Anello del Sirente"},{l:"Note",v:"Stessa tipologia terreno e quota del grande obiettivo"}], tip:"Se completate questo agevolmente, siete pronti per il grande obiettivo del 1° maggio.", warn:null },
+  { id:23, phase:5, date:"Sab 17 aprile 2027", title:"Uscita libera / Riposo attivo pre-Sirente", diff:"T", dislivello:300, km:7, ore:"2.5h",
+    drive:{via:"Flessibile — Rosciolo (Avezzano, 25 km, 30 min)",km:"~25–30 km",mins:"~30 min",partenza:"9:00",arrivo:"9:30",ar:"1h",tot:"~4h"},
+    boxes:[{l:"Scopo",v:"Recupero attivo — 2 settimane prima del grande obiettivo"},{l:"Opzioni",v:"Rosciolo, Valle Porclaneta, Cammino Mariano"},{l:"Focus",v:"Niente sforzo eccessivo — conservate le energie"},{l:"Preparazione",v:"Controllate tutta l'attrezzatura, zaino, scorte"}], tip:"Non sovraccaricate le ultime 2 settimane. Gambe fresche il 1° maggio.", warn:null },
+  { id:24, phase:5, date:"Sab 1 maggio 2027", title:"⭐ ANELLO DEL MONTE SIRENTE COMPLETO (2348m)", diff:"EE", dislivello:1100, km:19, ore:"8h", milestone:"🏆 GRANDE OBIETTIVO FINALE",
+    drive:{via:"Avezzano → Celano → SP56 Ovindoli → SP25 Chalet del Sirente",km:"~43 km",mins:"~55 min",partenza:"6:30",arrivo:"7:25",ar:"1h 50min",tot:"~10.5h"},
+    wl:[{url:"https://it.wikiloc.com/percorsi-escursionismo/anello-del-sirente-dallo-chalet-77306469",label:"Anello del Sirente dallo Chalet"},{url:"https://it.wikiloc.com/percorsi-escursionismo/anello-del-sirente-11279476",label:"Anello del Sirente (traccia storica)"},{url:"https://it.wikiloc.com/percorsi-escursionismo/monte-sirente-da-chalet-del-sirente-143447102",label:"Monte Sirente da Chalet (salita)"}],
+    boxes:[{l:"Partenza",v:"Chalet del Sirente (1150m)"},{l:"Segnavia",v:"CAI N°18 → N°15 → cresta completa"},{l:"Tappe",v:"Sirente 2348m → Neviera 2204m → M.Canale 2151m → M.S.Nicola 2012m"},{l:"Durata",v:"8 ore — partenza ore 6:30 TASSATIVO"}],
+    tip:"Il vostro traguardo dopo 12 mesi: da zero esperienza a EE con 19km e 1100m dislivello. La cresta del Sirente è uno dei panorami più belli dell'Appennino.",
+    warn:"2L+ acqua, bastoncini, Gore-Tex, 3 strati, kit PS completo. Emergenze: 118 | Soccorso Alpino: 800 200 210" }
+];
+
+const GEAR = [
+  { phase:"🚨 Subito — Prima del 30 maggio", budget:"350–560€", items:[
+    { id:"g1",  name:"Scarponi trekking alti Gore-Tex (suola Vibram)", note:"Salomon X Ultra 4 MID / Merrell Moab 3 / Scarpa Zodiac — in negozio fisico", price:"120–180€", must:true },
+    { id:"g2",  name:"Calze trekking qualità (3 paia)", note:"Falke TK2 / Smartwool Hike / Icebreaker — wool blend anti-vescica", price:"45–75€", must:true },
+    { id:"g3",  name:"Zaino 25–30L con cintura ventrale (lui e lei)", note:"Osprey Talon 26 (lui) / Tempest 26 (lei) · Deuter Trail 28 SL", price:"80–130€", must:true },
+    { id:"g4",  name:"Giacca impermeabile antivento", note:"Patagonia Torrentshell / Decathlon Forclaz MT500 — min. 2.5 strati", price:"60–150€", must:true },
+    { id:"g5",  name:"Magliette tecniche traspiranti (2 paia)", note:"Merino Icebreaker o Decathlon Quechua — mai cotone", price:"30–70€", must:true },
+    { id:"g6",  name:"Kit primo soccorso + telo termico", note:"Compeed, benda elastica, disinfettante, telo termico (2€!), ibuprofene", price:"20–30€", must:true },
+    { id:"g7",  name:"App Wikiloc / Komoot con download offline", note:"Scaricare tracce PRIMA dell'uscita — in quota non c'è segnale", price:"0–10€", must:true },
+    { id:"g8",  name:"Pantaloni tecnici convertibili (zip-off)", note:"Decathlon Forclaz MH500 / Columbia Silver Ridge", price:"30–70€", must:false },
+    { id:"g9",  name:"Cappellino da sole + crema SPF 50+", note:"Protezione UV in quota molto più intensa che in città", price:"15–25€", must:false },
+  ]},
+  { phase:"🌸 Giugno — Prima delle uscite 600m+", budget:"90–175€", items:[
+    { id:"g10", name:"Sacca idrica 2L o 2 borracce 750ml", note:"Osprey Hydraulics / CamelBak o Nalgene x2 — idratazione continua", price:"20–50€", must:true },
+    { id:"g11", name:"Pile leggero / midlayer tecnico", note:"Decathlon Forclaz MH100 / Patagonia R1 — per mattine fresche in quota", price:"30–80€", must:true },
+    { id:"g12", name:"Frontale LED ricaricabile USB", note:"Petzl Tikka / Black Diamond Spot — anche nelle uscite diurne", price:"25–45€", must:true },
+    { id:"g13", name:"Powerbank 10.000 mAh", note:"Anker PowerCore — GPS scarica il telefono, powerbank risolve", price:"25–40€", must:false },
+    { id:"g14", name:"Sali minerali + barrette energetiche", note:"Enervit/SiS per crampi, Clif Bar o frutta secca ogni 90 min", price:"15–25€", must:false },
+    { id:"g15", name:"Occhiali da sole polarizzati UV400", note:"Decathlon MH500 — UV intensi in quota, cat. 3 minimo", price:"20–60€", must:false },
+  ]},
+  { phase:"☀ Luglio — Prima dei percorsi EE", budget:"70–140€", items:[
+    { id:"g16", name:"Bastoncini telescopici alluminio (coppia x2)", note:"Black Diamond Trail / Leki / Decathlon MT500 — obbligatori da settembre EE", price:"60–120€", must:true },
+    { id:"g17", name:"Buff / scaldacollo tubolare (uno a testa)", note:"Original Buff merino — collo, testa, maschera vento in cresta", price:"12–20€", must:false },
+    { id:"g18", name:"Fischietto + coltellino Victorinox", note:"Fox40 Micro 3€ (emergenza) + Victorinox Hiker — pesa zero", price:"10–30€", must:false },
+  ]},
+  { phase:"🍂 Settembre — Prima percorsi EE e autunno", budget:"55–110€", items:[
+    { id:"g19", name:"Guanti leggeri da trekking (uno a testa)", note:"Fleece sottile o merino — mattine 3-8°C a settembre in quota", price:"15–30€", must:true },
+    { id:"g20", name:"Pantalone tecnico pesante / softshell", note:"Decathlon Forclaz MT500 Softshell — il convertibile estivo non basta", price:"45–90€", must:true },
+    { id:"g21", name:"Copri-zaino impermeabile", note:"Se non era incluso nello zaino — 10€ che salvano tutto", price:"8–15€", must:false },
+    { id:"g22", name:"Carta escursionistica Velino-Sirente 1:25.000 (Edizioni Il Lupo)", note:"Backup se il telefono si scarica — imparate le curve di livello", price:"12–15€", must:false },
+  ]},
+  { phase:"❄ Inverno — Novembre in poi", budget:"100–220€", items:[
+    { id:"g23", name:"Strato termico base invernale (top + bottom)", note:"Icebreaker 260 merino o Decathlon Wedze — sotto il pile", price:"50–100€", must:true },
+    { id:"g24", name:"Pile spesso / giacca imbottita leggera", note:"Decathlon Trek 500 primaloft o Forclaz MH500 fleece 300g/m²", price:"50–120€", must:true },
+    { id:"g25", name:"Ghette impermeabili basse", note:"Decathlon Forclaz low gaiter — neve non entra negli scarponi", price:"20–40€", must:false },
+    { id:"g26", name:"Guanti caldi invernali", note:"Sistema 2 strati: liner sottile + guantone esterno — per ciaspolate", price:"20–45€", must:false },
+    { id:"g27", name:"Ciaspole (NOLEGGIO in loco per la prima stagione)", note:"Piani di Pezza / Campo Felice: 10-15€/giorno. Acquistate solo se > 5 uscite/anno", price:"noleggio", must:false },
+  ]},
+];
+
+const MONTHS = [
+  { name:"Marzo–Aprile", emoji:"🌱", valley:"12–18°C", quota:"2–8°C a 1500m", tags:["meteo variabile","neve residua quota","sentieri fangosi"], color:"blue", route:"Percorsi bassi (Castrovalva, Cammino Mariani). Evitare Fontecellese e Sebastiani fino ad aprile inoltrato." },
+  { name:"Maggio", emoji:"🌸", valley:"15–22°C", quota:"6–14°C a 1500m", tags:["ideale","poco affollato","fioriture"], color:"good", route:"<b>Ideale per iniziare.</b> Castrovalva, Pereto S.Martino. Evitare quote > 1700m (neve residua nei versanti nord)." },
+  { name:"Giugno", emoji:"☀", valley:"22–28°C", quota:"12–18°C a 1500m", tags:["ottimo","temporali pomeriggio","partenza 7:30"], color:"good", route:"<b>Ottimo.</b> Rifugio Sebastiani, Fontecellese. Partenza tassativa ore 7:30. Temporali frequenti dalle 14:00." },
+  { name:"Luglio", emoji:"🌩", valley:"28–34°C", quota:"16–22°C a 2000m", tags:["caldo in valle","temporali frequenti","partenza 7:00","acqua 2L+"], color:"warn", route:"<b>Andateci in quota (1500m+)</b> dove fa fresco. Piani di Pezza, Vallevona. Partenza ore 7:00 MAX. Regola: via dalla cima entro le 12:30." },
+  { name:"Agosto", emoji:"☀", valley:"28–32°C", quota:"14–20°C a 2000m", tags:["affollato","partenza 7:00","fioriture tardive"], color:"warn", route:"Sentieri affollati il weekend — preferite martedì/mercoledì. Sebastiani + Costone: uscita principale del mese." },
+  { name:"Settembre", emoji:"🍂", valley:"20–25°C", quota:"8–15°C a 2000m", tags:["MIGLIORE mese","stabile","colori iniziano","pochi temporali"], color:"good", route:"<b>Il mese migliore in assoluto.</b> Temperature perfette, stabilità meteo, fauna attiva. Altare Neviera (primo EE), Vallevona lungo." },
+  { name:"Ottobre", emoji:"🍁", valley:"13–18°C", quota:"2–10°C a 2000m", tags:["colori autunnali","brina mattutina","meteo variabile","Gore-Tex obbligatorio"], color:"warn", route:"Colori magnifici ma meteo più instabile. Verificate 48h prima. Gore-Tex obbligatorio. Evitare Fontecellese con terreno bagnato (scivoloso)." },
+  { name:"Novembre", emoji:"🌧", valley:"8–14°C", quota:"0–5°C a 1500m", tags:["piogge","neve quota alta","bassa quota ok"], color:"bad", route:"Solo percorsi bassi (Cammino Mariano, Valle Roveto). Evitare tutto sopra 1400m." },
+  { name:"Dicembre–Febbraio", emoji:"❄", valley:"4–10°C", quota:"neve da 800m", tags:["inverno","ciaspolate","neve","attrezzatura specifica"], color:"bad", route:"Modalità invernale: ciaspolate guidate ai Piani di Pezza e Campo Felice. Passeggiate in valley. Allenamento in palestra mirato." },
+];
+
+const TIPS = [
+  { n:1, title:"Il ritmo del passo — la cosa più importante", body:"In montagna si usa il 'passo alpino': lento, costante, senza accelerate. Dovreste riuscire a parlare normalmente in salita. La regola: un passo per ogni secondo. I <b>primi 30 minuti andate più piano</b> di quanto crediate necessario — il corpo si scalda e poi mantenete quel ritmo per ore. Chi parte forte si ferma a metà salita." },
+  { n:2, title:"Tecnica di discesa — protegge le ginocchia", body:"La discesa consuma più ginocchia della salita (carico eccentrico). Tecniche: <b>ginocchia leggermente flesse</b> (mai rigide), appoggiate prima il tallone, usate i bastoncini per scaricare il peso. Passi piccoli e corti. Con i bastoncini si riduce del ~25% il carico sulle ginocchia." },
+  { n:3, title:"Allenamento in palestra specifico trekking", body:"<b>Step-up con zaino</b> (box 40cm, 3×15) — simula la salita<br><b>Affondi cammino</b> (3×20) — stabilizzatori caviglia e anca<br><b>Romanian deadlift</b> (3×12) — posteriori cosce, fondamentali in discesa<br><b>Calf raise su gradino</b> (3×20) — prevengono crampi polpacci<br><b>Tavola propriocettiva</b> (2×1min) — rinforza la caviglia<br><b>Tapis roulant inclinato 8–12%</b> (30min) — simula la salita, aerobico mirato" },
+  { n:4, title:"Leggere il meteo montagna", body:"Il meteo da pianura non funziona in quota. Usate:<br>• <b>Meteo Aeronautica</b> (meteoam.it) — il più affidabile<br>• <b>Mountain Forecast</b> (mountain-forecast.com) — per quota specifica<br>• <b>3BMeteo</b> con dettaglio orario — vedete quando arrivano temporali<br><br>Imparate i <b>cumulonembi</b>: nuvole che crescono verticalmente = temporale entro 1–2 ore. Cielo lattiginoso al mattino = brutto segno." },
+  { n:5, title:"Idratazione e alimentazione in uscita", body:"Bevete <b>ogni 15–20 minuti</b> anche senza sete — in quota la sudorazione è meno percepita. Mangiate <b>200 kcal ogni 90 min</b> su percorsi > 3h. In estate: sali minerali (Enervit) per prevenire crampi. Colazione abbondante prima (carboidrati). Mai partire a digiuno su dislivelli > 400m." },
+  { n:6, title:"Orientamento base — non dipendere solo dal telefono", body:"Il telefono si scarica, cade, si rompe. Imparate il minimo:<br>• <b>Traccia offline Wikiloc/Komoot</b> scaricata PRIMA<br>• <b>Segnavia bianco-rosso</b> = sentiero CAI, il numero = codice sentiero<br>• <b>Carta IGM 1:25.000</b> (Velino-Sirente, Ediz. Il Lupo) come backup fisico<br>• <b>Regola d'oro:</b> se perdete il segnavia, tornate all'ultimo punto certo. Mai 'puntare a occhio'." },
+  { n:7, title:"Sicurezza in coppia — regole non negoziabili", body:"• <b>Dite sempre</b> a qualcuno dove andate e quando tornate<br>• La montagna si fa al passo del <b>più in difficoltà</b> dei due<br>• Se uno dice 'non me la sento' si scende — nessuna discussione<br>• <b>Emergenza: 118</b> (anche con poco segnale) | <b>Soccorso Alpino: 800 200 210</b><br>• Scarpe rodate — mai prime uscite con scarpe nuove" },
+  { n:8, title:"Come capire se state crescendo", body:"Dopo ogni uscita annotatelo nel diario:<br>• Tempo di salita per km di dislivello (migliora progressivamente)<br>• Numero di soste fatte (devono diminuire)<br>• Frequenza cardiaca percepita (diventa più gestibile)<br>• Come si sentono le gambe il giorno dopo (sempre meno DOMS)<br><br>Dopo 6 mesi di allenamento costante, l'uscita 1 (Castrovalva) sembrerà una passeggiata." },
+];
+
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let state = {
+  done: {},      // outingId -> bool
+  ratings: {},   // outingId -> 1-5
+  notes: {},     // outingId -> string
+  gear: {},      // gearId -> bool
+  lastUpdate: null
+};
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('trekking_marsica_v2');
+    if (s) state = JSON.parse(s);
+  } catch(e) {}
+}
+
+function saveState() {
+  state.lastUpdate = new Date().toISOString();
+  localStorage.setItem('trekking_marsica_v2', JSON.stringify(state));
+  updateStats();
+  updateLastUpdate();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+function renderOutings() {
+  for (let p = 1; p <= 5; p++) {
+    const el = document.getElementById('outings-phase' + p);
+    if (!el) continue;
+    const phase = OUTINGS.filter(o => o.phase === p);
+    el.innerHTML = phase.map(o => renderOuting(o)).join('');
+  }
+}
+
+function renderOuting(o) {
+  const done = !!state.done[o.id];
+  const nextUp = !done && isNextUp(o.id);
+  const rating = state.ratings[o.id] || 0;
+  const note = state.notes[o.id] || '';
+  const cls = (done ? 'done' : '') + (nextUp ? ' next-up' : '');
+
+  const boxes = o.boxes.map(b => `<div class="dbox"><div class="dbox-lbl">${b.l}</div><div class="dbox-val">${b.v}</div></div>`).join('');
+  const stars = [1,2,3,4,5].map(i => `<span class="star ${i <= rating ? 'lit' : ''}" onclick="setRating(${o.id}, ${i}, event)">★</span>`).join('');
+  const tip = o.tip ? `<div class="tip-box"><b>💡 Focus:</b> ${o.tip}</div>` : '';
+  const warn = o.warn ? `<div class="warn-box"><b>⚠</b> ${o.warn}</div>` : '';
+  const milestone = o.milestone ? `<span class="badge badge-milestone">${o.milestone}</span>` : '';
+  const wlLinks = o.wl ? o.wl.map((w,i) => `<a href="${w.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--accent);text-decoration:none;padding:4px 10px;border:1px solid rgba(200,224,107,.25);border-radius:20px;background:var(--accent-dim);margin:2px 2px 2px 0" onmouseenter="this.style.background='rgba(200,224,107,.2)'" onmouseleave="this.style.background='var(--accent-dim)'">🗺 ${w.label || 'Traccia Wikiloc ' + (o.wl.length > 1 ? (i+1) : '')}</a>`).join('') : '';
+  const wlSection = wlLinks ? `<div style="margin:10px 0 6px"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Tracce GPS — Wikiloc</div>${wlLinks}</div>` : '';
+
+  const driveHtml = o.drive ? `<div class="drive-box">
+    <div class="drive-icon">🚗</div>
+    <div class="drive-info">
+      <div class="drive-row"><b>Percorso:</b> ${o.drive.via} (${o.drive.km})</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px">
+        <div style="background:var(--bg4);border-radius:6px;padding:7px 9px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">🥾 Trekking</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);font-family:var(--mono)">${o.ore}</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:6px;padding:7px 9px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">🚗 Viaggio A/R</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);font-family:var(--mono)">${o.drive.ar}</div>
+        </div>
+        <div style="background:rgba(232,165,58,.15);border-radius:6px;padding:7px 9px;text-align:center;border:1px solid rgba(232,165,58,.25)">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">⏱ Totale giornata</div>
+          <div style="font-size:14px;font-weight:600;color:var(--amber);font-family:var(--mono)">${o.drive.tot}</div>
+        </div>
+      </div>
+      <div class="drive-row" style="margin-top:8px"><b>Partenza da Capistrello:</b> ore ${o.drive.partenza} → parcheggio ore ${o.drive.arrivo}</div>
+    </div>
+  </div>` : '';
+
+  return `<div class="ocard ${cls}" id="ocard-${o.id}">
+    <div class="ocard-header" onclick="toggleOuting(${o.id})">
+      <div class="ocard-num">${done ? '✓' : o.id}</div>
+      <div class="ocard-main">
+        <div class="ocard-date">${o.date}</div>
+        <div class="ocard-title">${o.title}</div>
+        <div class="ocard-meta">
+          <span class="badge badge-${o.diff}">${o.diff}</span>
+          <span class="badge badge-gray">↑ ${o.dislivello}m</span>
+          <span class="badge badge-gray">${o.km}km</span>
+          <span class="badge badge-gray">${o.ore}</span>
+          ${o.drive ? `<span class="badge badge-gray">⏱ ${o.drive.tot}</span>` : ''}
+          ${milestone}
+        </div>
+      </div>
+      <div class="ocard-actions">
+        <button class="btn-done" onclick="toggleDone(${o.id}, event)">${done ? '✓ Fatta' : 'Segna fatta'}</button>
+        <span class="chevron-icon" id="chev-${o.id}">▼</span>
+      </div>
+    </div>
+    <div class="ocard-detail" id="detail-${o.id}">
+      ${driveHtml}
+      <div class="detail-grid">${boxes}</div>
+      ${wlSection}
+      ${tip}${warn}
+      <div class="rating-wrap">
+        <span class="rating-lbl">Voto uscita:</span>
+        <div class="stars">${stars}</div>
+      </div>
+      <div class="detail-note-wrap">
+        <div class="detail-note-lbl">Note personali</div>
+        <textarea class="detail-note" placeholder="Come è andata? Meteo, sensazioni, cosa migliorare…" onchange="saveNote(${o.id}, this.value)">${note}</textarea>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderGear() {
+  const el = document.getElementById('gear-list');
+  el.innerHTML = GEAR.map(phase => {
+    const totalItems = phase.items.length;
+    const checkedItems = phase.items.filter(i => state.gear[i.id]).length;
+    const pct = totalItems > 0 ? Math.round(checkedItems / totalItems * 100) : 0;
+
+    const items = phase.items.map(item => {
+      const checked = !!state.gear[item.id];
+      return `<div class="gear-item ${checked ? 'checked' : ''}" id="gitem-${item.id}" onclick="toggleGear('${item.id}')">
+        <div class="gear-checkbox">${checked ? '✓' : ''}</div>
+        <div class="gear-item-info">
+          <div class="gear-item-name">${item.name} ${item.must ? '<span style="color:var(--red);font-size:10px">MUST</span>' : ''}</div>
+          <div class="gear-item-note">${item.note}</div>
+        </div>
+        <div class="gear-item-right">
+          <span class="price-tag">${item.price}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="gear-phase">
+      <div class="gear-phase-header">
+        <div class="gear-phase-title">${phase.phase}</div>
+        <div class="gear-phase-budget">${checkedItems}/${totalItems} · ${phase.budget}</div>
+      </div>
+      <div class="gear-progress"><div class="gear-progress-fill" style="width:${pct}%"></div></div>
+      ${items}
+    </div>`;
+  }).join('');
+}
+
+function renderMeteo() {
+  const el = document.getElementById('monthGrid');
+  el.innerHTML = MONTHS.map(m => {
+    const tags = m.tags.map(t => `<span class="month-tag ${m.color === 'bad' ? 'bad' : (m.color === 'warn' ? 'warn' : 'good')}">${t}</span>`).join('');
+    return `<div class="month-card">
+      <div class="month-name">${m.emoji} ${m.name}</div>
+      <div class="month-temp">Valle: <b>${m.valley}</b> · Quota: <b>${m.quota}</b></div>
+      <div class="month-tag-row">${tags}</div>
+      <div class="month-route">${m.route}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTips() {
+  const el = document.getElementById('tips-list');
+  el.innerHTML = TIPS.map(t => `<div class="tip-card">
+    <div class="tip-card-title"><span class="tip-num">${t.n}</span> ${t.title}</div>
+    <div class="tip-card-body">${t.body}</div>
+  </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INTERACTIONS
+// ═══════════════════════════════════════════════════════════
+function toggleOuting(id) {
+  const det = document.getElementById('detail-' + id);
+  const chev = document.getElementById('chev-' + id);
+  if (!det) return;
+  const isOpen = det.classList.contains('open');
+  det.classList.toggle('open', !isOpen);
+  if (chev) chev.classList.toggle('open', !isOpen);
+}
+
+function toggleDone(id, e) {
+  e.stopPropagation();
+  state.done[id] = !state.done[id];
+  saveState();
+  // Re-render the single card
+  const o = OUTINGS.find(x => x.id === id);
+  const card = document.getElementById('ocard-' + id);
+  if (o && card) {
+    const detOpen = card.querySelector('.ocard-detail.open');
+    const wasOpen = !!detOpen;
+    card.outerHTML = renderOuting(o);
+    if (wasOpen) {
+      // Reopen detail after render
+      setTimeout(() => {
+        const det = document.getElementById('detail-' + id);
+        const chev = document.getElementById('chev-' + id);
+        if (det) { det.classList.add('open'); }
+        if (chev) { chev.classList.add('open'); }
+      }, 10);
+    }
+  }
+  updateNextBanner();
+}
+
+function setRating(id, val, e) {
+  e.stopPropagation();
+  state.ratings[id] = val;
+  saveState();
+  const stars = document.querySelectorAll(`#detail-${id} .star`);
+  stars.forEach((s, i) => s.classList.toggle('lit', i < val));
+}
+
+function saveNote(id, val) {
+  state.notes[id] = val;
+  saveState();
+}
+
+function toggleGear(gid) {
+  state.gear[gid] = !state.gear[gid];
+  saveState();
+  const item = document.getElementById('gitem-' + gid);
+  if (item) {
+    item.classList.toggle('checked', !!state.gear[gid]);
+    item.querySelector('.gear-checkbox').textContent = state.gear[gid] ? '✓' : '';
+  }
+  // Update phase header
+  renderGear();
+}
+
+function toggleLegend() {
+  const body = document.getElementById('legend-body');
+  const chev = document.getElementById('legend-chev');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (chev) chev.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function resetAll() {
+  if (confirm('Sei sicuro di voler resettare tutti i progressi? Le note e i segni di completamento verranno cancellati.')) {
+    state = { done: {}, ratings: {}, notes: {}, gear: {}, lastUpdate: null };
+    localStorage.removeItem('trekking_marsica_v2');
+    location.reload();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  STATS & UI
+// ═══════════════════════════════════════════════════════════
+function isNextUp(id) {
+  for (const o of OUTINGS) {
+    if (!state.done[o.id]) return o.id === id;
+  }
+  return false;
+}
+
+function updateStats() {
+  const doneCount = OUTINGS.filter(o => state.done[o.id]).length;
+  const totalDislivello = OUTINGS.filter(o => state.done[o.id]).reduce((s, o) => s + o.dislivello, 0);
+  const totalKm = OUTINGS.filter(o => state.done[o.id]).reduce((s, o) => s + o.km, 0);
+  const totalGear = Object.keys(GEAR.flatMap(p => p.items).reduce((acc, i) => { acc[i.id] = i; return acc; }, {})).length;
+  const checkedGear = Object.values(state.gear).filter(Boolean).length;
+  const allGearIds = GEAR.flatMap(p => p.items).length;
+  const gearPct = allGearIds > 0 ? Math.round(checkedGear / allGearIds * 100) : 0;
+
+  document.getElementById('statDone').textContent = doneCount + '/24';
+  document.getElementById('statDislivello').textContent = totalDislivello.toLocaleString('it') + ' m';
+  document.getElementById('statKm').textContent = totalKm.toFixed(1) + ' km';
+  document.getElementById('statGear').textContent = gearPct + '%';
+
+  const pct = Math.round(doneCount / 24 * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = doneCount + ' / 24 uscite (' + pct + '%)';
+}
+
+function updateNextBanner() {
+  const next = OUTINGS.find(o => !state.done[o.id]);
+  if (!next) {
+    document.getElementById('nextBanner').style.display = 'none';
+    return;
+  }
+  document.getElementById('nextTitle').textContent = '↑ Prossima uscita: ' + next.title;
+  document.getElementById('nextSub').textContent = next.date + ' · ↑' + next.dislivello + 'm · ' + next.km + 'km · ' + next.ore;
+}
+
+function updateLastUpdate() {
+  const d = state.lastUpdate ? new Date(state.lastUpdate) : null;
+  const str = d ? d.toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Mai aggiornato';
+  document.getElementById('lastUpdate').textContent = str;
+  document.getElementById('footerDate').textContent = str;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+loadState();
+renderOutings();
+renderGear();
+renderMeteo();
+renderTips();
+updateStats();
+updateNextBanner();
+updateLastUpdate();
+</script>
+</body>
+</html>
