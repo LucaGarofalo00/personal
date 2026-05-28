@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monte Etra — Guida Completa al Percorso 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1a18;
+  --ink-2: #4a4a42;
+  --ink-3: #8a8a7e;
+  --paper: #f5f2ea;
+  --paper-2: #ede9de;
+  --paper-3: #e4dfd1;
+  --accent: #3d6e4e;
+  --accent-2: #c85a2a;
+  --accent-3: #4a6e8e;
+  --warn: #b07020;
+  --danger: #8e2a2a;
+  --good: #2e6e3e;
+  --border: rgba(26,26,24,.12);
+  --border-2: rgba(26,26,24,.22);
+  --r: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+/* ── HERO ── */
+.hero {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 4rem 2rem 3rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 70% 50%, rgba(61,110,78,.35) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 80% at 20% 80%, rgba(74,110,142,.25) 0%, transparent 60%);
+}
+.hero-inner { max-width: 860px; margin: 0 auto; position: relative; }
+.hero-eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(245,242,234,.5);
+  margin-bottom: 1rem;
+}
+.hero h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -.01em;
+  margin-bottom: .5rem;
+}
+.hero h1 em { font-style: italic; color: rgba(245,242,234,.7); }
+.hero-sub {
+  font-size: 14px;
+  color: rgba(245,242,234,.6);
+  margin-top: .75rem;
+  max-width: 520px;
+}
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 1.5rem;
+}
+.badge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid;
+}
+.badge-green { border-color: rgba(61,110,78,.6); color: rgba(180,220,190,.9); }
+.badge-amber { border-color: rgba(176,112,32,.6); color: rgba(230,190,120,.9); }
+.badge-blue  { border-color: rgba(74,110,142,.6); color: rgba(160,190,220,.9); }
+.badge-red   { border-color: rgba(142,42,42,.6); color: rgba(220,160,150,.9); }
+
+/* ── STATS ROW ── */
+.stats-bar {
+  background: var(--ink);
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding: 0 2rem;
+}
+.stats-bar-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.stat-cell {
+  padding: 1.25rem .5rem;
+  border-right: 1px solid rgba(255,255,255,.07);
+  text-align: center;
+}
+.stat-cell:last-child { border-right: none; }
+.stat-cell .val {
+  font-family: 'Fraunces', serif;
+  font-size: 1.8rem;
+  font-weight: 300;
+  color: var(--paper);
+  line-height: 1;
+}
+.stat-cell .lbl {
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(245,242,234,.4);
+  margin-top: 4px;
+}
+
+/* ── LAYOUT ── */
+.page { max-width: 860px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+.section { margin-bottom: 3rem; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+.section-num {
+  font-family: 'Fraunces', serif;
+  font-size: 2rem;
+  font-weight: 300;
+  color: var(--paper-3);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.35rem;
+  font-weight: 300;
+  color: var(--ink);
+  letter-spacing: -.01em;
+}
+.divider { height: 1px; background: var(--border); margin: 2.5rem 0; }
+
+/* ── ALERT BOXES ── */
+.alert {
+  border-radius: var(--r);
+  padding: .8rem 1rem;
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin-bottom: .75rem;
+  display: flex;
+  gap: .6rem;
+  align-items: flex-start;
+}
+.alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.a-warn  { background: #fdf3df; border: 1px solid #e8c870; color: #6b4a10; }
+.a-danger{ background: #fdecea; border: 1px solid #e8a0a0; color: #6b1e1e; }
+.a-good  { background: #edf6f0; border: 1px solid #8ecba0; color: #1e5530; }
+.a-info  { background: #e8f0f8; border: 1px solid #90b8d8; color: #1e3a52; }
+
+/* ── CARDS GRID ── */
+.cards { display: grid; gap: 10px; margin-bottom: 1rem; }
+.cards-4 { grid-template-columns: repeat(4, 1fr); }
+.cards-3 { grid-template-columns: repeat(3, 1fr); }
+.cards-2 { grid-template-columns: repeat(2, 1fr); }
+.card {
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: .9rem 1rem;
+}
+.card .c-label { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+.card .c-val { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 300; color: var(--ink); }
+.card .c-sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+/* ── PHASE STEPS ── */
+.phases { display: flex; flex-direction: column; gap: 10px; }
+.phase {
+  display: flex;
+  gap: 12px;
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: .85rem 1rem;
+  align-items: flex-start;
+}
+.phase-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  font-size: 12px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ph-blue { background: #dbeafe; color: #1e40af; }
+.ph-red  { background: #fee2e2; color: #991b1b; }
+.phase p { font-size: 13.5px; line-height: 1.55; }
+.phase strong { font-weight: 500; }
+
+/* ── GEAR GRID ── */
+.gear-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.gear-item {
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: .7rem .9rem;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.gear-item strong { font-weight: 500; display: block; margin-bottom: 2px; }
+.gear-required { border-left: 3px solid var(--danger); }
+.gear-recommended { border-left: 3px solid var(--accent); }
+
+/* ── WEATHER ROW ── */
+.weather-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.day-card {
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: .7rem .5rem;
+  text-align: center;
+}
+.day-card.best { border-color: var(--accent); background: #edf6f0; }
+.day-name { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .07em; }
+.day-icon { font-size: 1.4rem; margin: 4px 0; }
+.day-temp { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 300; }
+.day-rain { font-size: 11px; margin-top: 2px; font-weight: 500; }
+.rain-good { color: var(--good); }
+.rain-warn { color: var(--warn); }
+.rain-bad  { color: var(--danger); }
+
+/* ── ROUTES TABLE ── */
+.route-row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto auto auto;
+  gap: .5rem;
+  align-items: center;
+  padding: .8rem 1rem;
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 8px;
+  font-size: 13.5px;
+}
+.route-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500;
+  background: var(--ink); color: var(--paper);
+}
+.route-row.highlighted { border-color: var(--accent); border-width: 2px; }
+.route-badge {
+  font-size: 11px; font-weight: 500; padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.rb-green { background: #d1ead8; color: #1e5530; }
+.rb-amber { background: #faeac0; color: #6b4a10; }
+.rb-red   { background: #fddada; color: #6b1e1e; }
+
+/* ── MAP CANVAS ── */
+.map-wrap {
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+#mapCanvas { display: block; width: 100%; height: 340px; cursor: crosshair; }
+
+/* ── ELEVATION PROFILE ── */
+.elev-wrap {
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 1rem 1.25rem 1rem;
+  margin-bottom: 1rem;
+}
+#elevCanvas { display: block; width: 100%; height: 180px; }
+
+/* ── SOS BOX ── */
+.sos-box {
+  background: var(--danger);
+  border-radius: 12px;
+  padding: 1.5rem;
+  color: white;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+.sos-num {
+  font-family: 'Fraunces', serif;
+  font-size: 4rem;
+  font-weight: 300;
+  line-height: 1;
+}
+.sos-label { font-size: 13px; opacity: .8; margin-top: 4px; }
+.sos-steps { font-size: 12.5px; opacity: .85; line-height: 1.7; }
+
+/* ── CHECKLIST ── */
+.check-list { list-style: none; }
+.check-list li {
+  display: flex;
+  gap: 10px;
+  padding: .55rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+  align-items: flex-start;
+}
+.check-list li:last-child { border-bottom: none; }
+.check-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.ci-good  { color: var(--good); }
+.ci-warn  { color: var(--warn); }
+.ci-bad   { color: var(--danger); }
+
+/* ── LEGEND ── */
+.legend { display: flex; gap: 1.5rem; font-size: 12px; color: var(--ink-3); margin-bottom: .5rem; flex-wrap: wrap; }
+.leg { display: flex; align-items: center; gap: 6px; }
+.leg-line { width: 20px; height: 3px; border-radius: 2px; }
+
+/* ── PRINT ── */
+.no-print { }
+@media print {
+  .no-print { display: none !important; }
+  body { font-size: 12px; }
+  .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .cards-4 { grid-template-columns: repeat(2,1fr); }
+  .cards-3 { grid-template-columns: repeat(2,1fr); }
+  .weather-row { grid-template-columns: repeat(3,1fr); }
+  .stats-bar-inner { grid-template-columns: repeat(3,1fr); }
+  .sos-box { grid-template-columns: 1fr; }
+  .gear-grid { grid-template-columns: 1fr; }
+  .route-row { grid-template-columns: 2rem 1fr; }
+  .route-row > *:nth-child(n+3) { display: none; }
+}
+
+/* ── FOOTER ── */
+footer {
+  background: var(--ink);
+  color: rgba(245,242,234,.45);
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-inner">
+    <p class="hero-eyebrow">Parco Naturale Regionale Sirente-Velino · Abruzzo</p>
+    <h1>Monte Etra<br><em>Guida Completa</em></h1>
+    <p class="hero-sub">Percorso 1 — Sentiero 13 + 13A da Val d'Arano. Dati GPS ufficiali del Parco. Tutte le informazioni per uscire in sicurezza.</p>
+    <div class="hero-badges">
+      <span class="badge badge-green">✓ Sentiero 13 + 13A aperti</span>
+      <span class="badge badge-amber">⚠ Cresta esposta sulle Gole</span>
+      <span class="badge badge-blue">↑ 1.827 m slm</span>
+      <span class="badge badge-red">☎ Emergenza: 112</span>
+    </div>
+  </div>
+</header>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stats-bar-inner">
+    <div class="stat-cell"><div class="val">511m</div><div class="lbl">Dislivello</div></div>
+    <div class="stat-cell"><div class="val">~13km</div><div class="lbl">Distanza A/R</div></div>
+    <div class="stat-cell"><div class="val">4–5h</div><div class="lbl">Tempo totale</div></div>
+    <div class="stat-cell"><div class="val">E</div><div class="lbl">Difficoltà CAI</div></div>
+    <div class="stat-cell"><div class="val">1.827m</div><div class="lbl">Quota vetta</div></div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ══ 1. TUTTI I PERCORSI ══ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2 class="section-title">Tutti i percorsi per Monte Etra</h2>
+    </div>
+
+    <div class="route-row highlighted">
+      <div class="route-num">1</div>
+      <div><strong>Val d'Arano → Cresta → Vetta</strong> (A/R classico)<br><small style="color:#4a4a42">Sentiero 13 + 13A — il percorso di questa guida</small></div>
+      <span style="font-size:13px;color:#4a4a42">13 km</span>
+      <span style="font-size:13px;color:#4a4a42">4–5h</span>
+      <span class="route-badge rb-green">Consigliato</span>
+    </div>
+    <div class="route-row">
+      <div class="route-num">2</div>
+      <div><strong>Anello via Via Romana</strong><br><small style="color:#4a4a42">Sentiero 12A + cresta NW — il più scenografico</small></div>
+      <span style="font-size:13px;color:#4a4a42">14–15 km</span>
+      <span style="font-size:13px;color:#4a4a42">~5h</span>
+      <span class="route-badge rb-amber">Verif. apertura 12A</span>
+    </div>
+    <div class="route-row">
+      <div class="route-num">3</div>
+      <div><strong>Val d'Arano → Monte Savina → Vetta</strong><br><small style="color:#4a4a42">Cresta lunga con Monte Savina (1.760 m)</small></div>
+      <span style="font-size:13px;color:#4a4a42">14,8 km</span>
+      <span style="font-size:13px;color:#4a4a42">4h 30</span>
+      <span class="route-badge rb-green">Escursionisti esperti</span>
+    </div>
+    <div class="route-row">
+      <div class="route-num">4</div>
+      <div><strong>Da Ovindoli (falesia) — Anello completo</strong><br><small style="color:#4a4a42">Partenza da Ovindoli, sentiero CAI 13</small></div>
+      <span style="font-size:13px;color:#4a4a42">14,2 km</span>
+      <span style="font-size:13px;color:#4a4a42">5–5,5h</span>
+      <span class="route-badge rb-amber">Medio</span>
+    </div>
+
+    <div class="alert a-info" style="margin-top:.75rem">
+      <span class="alert-icon">ℹ️</span>
+      <span>Tutti i percorsi convergono sulla <strong>Val d'Arano (Ovindoli)</strong>, raggiungibile da Avezzano in ~25 minuti. Da Avezzano: SP21 → Celano → SP13 per Ovindoli → deviazione Gole di Celano / Val d'Arano.</span>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ══ 2. MAPPA GPS ══ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2 class="section-title">Traccia GPS ufficiale — Percorso 1</h2>
+    </div>
+    <p style="font-size:13px;color:var(--ink-3);margin-bottom:.75rem">Dati estratti dai file KMZ ufficiali del Parco Regionale Sirente-Velino (sentiero 13 + 13A).</p>
+
+    <div class="legend">
+      <span class="leg"><span class="leg-line" style="background:#2563eb"></span>Sentiero 13 — Val d'Arano → Bocchetta (4,4 km)</span>
+      <span class="leg"><span class="leg-line" style="background:#c85a2a"></span>Sentiero 13A — Bocchetta → Monte Etra (2,1 km)</span>
+    </div>
+
+    <div class="map-wrap">
+      <canvas id="mapCanvas"></canvas>
+    </div>
+
+    <div class="cards cards-3">
+      <div class="card"><p class="c-label">▶ Partenza</p><p class="c-val" style="font-size:1.1rem">Val d'Arano</p><p class="c-sub">1.317 m · 42.1370°N 13.5420°E</p></div>
+      <div class="card"><p class="c-label">⬡ Bivio</p><p class="c-val" style="font-size:1.1rem">Bocchetta Prato Popolo</p><p class="c-sub">1.608 m · 42.1256°N 13.5814°E</p></div>
+      <div class="card"><p class="c-label">▲ Vetta</p><p class="c-val" style="font-size:1.1rem">Monte Etra</p><p class="c-sub">1.827 m · 42.1102°N 13.5859°E</p></div>
+    </div>
+  </section>
+
+  <!-- ══ 3. PROFILO ALTIMETRICO ══ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2 class="section-title">Profilo altimetrico</h2>
+    </div>
+    <div class="elev-wrap">
+      <canvas id="elevCanvas"></canvas>
+    </div>
+    <div class="cards cards-4">
+      <div class="card"><p class="c-label">Quota partenza</p><p class="c-val">1.317 m</p></div>
+      <div class="card"><p class="c-label">Bocchetta</p><p class="c-val">1.608 m</p><p class="c-sub">+291 m dal parcheggio</p></div>
+      <div class="card"><p class="c-label">Quota vetta</p><p class="c-val">1.827 m</p><p class="c-sub">+219 m dalla bocchetta</p></div>
+      <div class="card"><p class="c-label">Dislivello totale</p><p class="c-val">510 m</p><p class="c-sub">Su 6,5 km</p></div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ══ 4. FASI CRITICHE ══ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2 class="section-title">Fasi del percorso e punti critici</h2>
+    </div>
+    <div class="phases">
+      <div class="phase">
+        <div class="phase-num ph-blue">1</div>
+        <p><strong>Avezzano → Parcheggio Val d'Arano (auto).</strong> Sterrata bianca da Ovindoli. Dopo piogge diventa fangosa: con auto bassa, parcheggiate prima del primo maneggio e camminate il tratto iniziale. Lasciare l'auto nei pressi del cartello di divieto di transito.</p>
+      </div>
+      <div class="phase">
+        <div class="phase-num ph-blue">2</div>
+        <p><strong>Sentiero 13 — Sterrata (4,4 km, ~1h 50min).</strong> Nessuna difficoltà tecnica. Pendenza molto dolce e costante. Attenzione al <strong>bivio verso il Vallone dei Puzzilli</strong> sulla sinistra: ignorarlo e proseguire dritto. Seguire i segnali bianco-rossi del CAI.</p>
+      </div>
+      <div class="phase">
+        <div class="phase-num ph-blue">3</div>
+        <p><strong>Bocchetta Prato del Popolo, 1.608 m — bivio critico.</strong> Ampio pianoro con tavoli in legno: punto ideale per una prima sosta. Da qui si imbocca il sentiero 13A in direzione <strong>SUD</strong>. Usare il KMZ sul telefono per non perdere il bivio. Salgono visibilmente le Gole di Celano alla propria destra.</p>
+      </div>
+      <div class="phase">
+        <div class="phase-num ph-red">4</div>
+        <p><strong>Cresta 13A — tratto esposto ⚠ (punto chiave).</strong> La cresta sale ripida (~30% di pendenza media, 1,3 km) sopra le Gole di Celano con affacci verticali sul lato est. Un breve passaggio di 1° grado richiede l'uso delle mani. <strong>Non adatto a chi soffre di vertigini.</strong> Con erba bagnata o neve il terreno diventa scivoloso: attendere condizioni asciutte. Visione sul Sirente, Velino, Piana del Fucino.</p>
+      </div>
+      <div class="phase">
+        <div class="phase-num ph-red">5</div>
+        <p><strong>Vetta Monte Etra, 1.827 m — gestione del tempo.</strong> Verifica il meteo prima di ripartire. Calcola almeno <strong>2 ore di ritorno</strong> dalla vetta al parcheggio. La discesa sulla cresta bagnata è più rischiosa della salita. Rientra in anticipo se il cielo si copre, senza aspettare il temporale.</p>
+      </div>
+    </div>
+
+    <div class="alert a-warn" style="margin-top:1rem">
+      <span class="alert-icon">⏱️</span>
+      <span><strong>Regola d'oro:</strong> parti entro le 8:30–9:00 da Avezzano. In estate i temporali arrivano dopo le 13–14. Devi essere alla Bocchetta in discesa entro le 13:00 se il cielo si sta coprendo.</span>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ══ 5. METEO ══ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <h2 class="section-title">Meteo e finestre di uscita</h2>
+    </div>
+
+    <div class="alert a-danger">
+      <span class="alert-icon">🌧️</span>
+      <span><strong>Oggi (28 mag):</strong> Pioggerella in corso, 72% probabilità pioggia — la cresta 13A con erba bagnata è scivolosa. Sconsigliato uscire oggi.</span>
+    </div>
+
+    <div class="weather-row" style="margin:1rem 0">
+      <div class="day-card">
+        <div class="day-name">Gio 28</div>
+        <div class="day-icon">🌧️</div>
+        <div class="day-temp">21°</div>
+        <div class="day-rain rain-bad">72%</div>
+      </div>
+      <div class="day-card">
+        <div class="day-name">Ven 29</div>
+        <div class="day-icon">🌦️</div>
+        <div class="day-temp">19°</div>
+        <div class="day-rain rain-warn">25%</div>
+      </div>
+      <div class="day-card best">
+        <div class="day-name">Sab 30 ✓</div>
+        <div class="day-icon">☀️</div>
+        <div class="day-temp">21°</div>
+        <div class="day-rain rain-good">0%</div>
+      </div>
+      <div class="day-card">
+        <div class="day-name">Dom 31</div>
+        <div class="day-icon">🌦️</div>
+        <div class="day-temp">22°</div>
+        <div class="day-rain rain-warn">45%</div>
+      </div>
+      <div class="day-card">
+        <div class="day-name">Lun 01</div>
+        <div class="day-icon">🌤️</div>
+        <div class="day-temp">21°</div>
+        <div class="day-rain rain-good">20%</div>
+      </div>
+    </div>
+
+    <div class="alert a-good">
+      <span class="alert-icon">☀️</span>
+      <span><strong>Sabato 30 maggio è la finestra migliore</strong> — 0% probabilità pioggia, temperatura ideale. Partenza consigliata entro le 8:30 da Avezzano.</span>
+    </div>
+
+    <div class="cards cards-4" style="margin-top:1rem">
+      <div class="card"><p class="c-label">Avezzano 680m</p><p class="c-val">~22°</p><p class="c-sub">Punto partenza auto</p></div>
+      <div class="card"><p class="c-label">Val d'Arano 1.317m</p><p class="c-val">~16°</p><p class="c-sub">Inizio sentiero</p></div>
+      <div class="card"><p class="c-label">Vetta 1.827m</p><p class="c-val">~10°</p><p class="c-sub">−3.5°C ogni 500m</p></div>
+      <div class="card"><p class="c-label">Con vento cresta</p><p class="c-val">~6°</p><p class="c-sub">Percepito con windchill</p></div>
+    </div>
+
+    <p style="font-size:13px;color:var(--ink-3);margin-top:.75rem">App meteo affidabili: <strong>Meteomont CAI</strong> (bollettino neve e valanghe), <strong>ARPA Abruzzo</strong> (previsioni orarie locali).</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ══ 6. EQUIPAGGIAMENTO ══ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">06</span>
+      <h2 class="section-title">Equipaggiamento</h2>
+    </div>
+
+    <div class="alert a-danger">
+      <span class="alert-icon">⛔</span>
+      <span><strong>Obbligatorio:</strong> Scarpe da trekking con suola scolpita. Senza scarpe idonee, le guide del Parco e gli accompagnatori CAI possono rifiutare la partecipazione all'escursione.</span>
+    </div>
+
+    <div class="gear-grid" style="margin-top:.75rem">
+      <div class="gear-item gear-required"><strong>Scarpe trekking — OBBLIGATORIE</strong>Caviglia media o alta, suola Vibram scolpita. Niente sneakers, niente trail running leggere.</div>
+      <div class="gear-item gear-required"><strong>Acqua — min. 2 litri</strong>Nessuna sorgente sicura lungo il percorso. Portare tutta l'acqua da casa.</div>
+      <div class="gear-item gear-required"><strong>Abbigliamento a strati</strong>Base traspirante + pile o softshell + giacca impermeabile. In vetta si percepiscono ~6°C con vento.</div>
+      <div class="gear-item gear-required"><strong>Telefono carico + KMZ offline</strong>Caricare il file KMZ su OruxMaps, Maps.me o Google Maps offline PRIMA di partire. Il segnale sulla cresta può essere debole.</div>
+      <div class="gear-item gear-recommended"><strong>Bastoncini da trekking</strong>Consigliati. Molto utili in discesa sulla cresta e nel passaggio esposto.</div>
+      <div class="gear-item gear-recommended"><strong>Kit pronto soccorso</strong>Cerotti, benda elastica, antidolorifico, coperta isotermica, fischietto. In vetta siete soli.</div>
+      <div class="gear-item gear-recommended"><strong>Protezione solare</strong>Crema SPF 50+, occhiali da sole, cappello con visiera. In quota l'irraggiamento UV è intenso.</div>
+      <div class="gear-item gear-recommended"><strong>Cibo + sali minerali</strong>Pranzo al sacco, snack energetici (frutta secca, barrette), integratori di sali per la cresta.</div>
+      <div class="gear-item gear-recommended"><strong>Powerbank leggero</strong>Il telefono con GPS attivo scarica velocemente. Un powerbank da 10.000mAh è sufficiente.</div>
+      <div class="gear-item gear-recommended"><strong>Zaino 20–25L</strong>Adeguato per una giornata. Impermeabile o con cover antipioggia.</div>
+    </div>
+
+    <div class="section-head" style="margin-top:1.5rem;margin-bottom:.75rem">
+      <h3 style="font-size:1rem;font-weight:500;color:var(--danger)">⛔ Non portare / Non fare</h3>
+    </div>
+    <ul class="check-list">
+      <li><span class="check-icon ci-bad">✗</span>Jeans o pantaloni di cotone — bagnati appesantiscono e non isolano.</li>
+      <li><span class="check-icon ci-bad">✗</span>Animali al seguito — vietato dal regolamento del Parco sul sentiero 13A.</li>
+      <li><span class="check-icon ci-bad">✗</span>Bambini sotto i 14 anni sul tratto di cresta (13A) — sconsigliato per via del passaggio esposto.</li>
+      <li><span class="check-icon ci-bad">✗</span>Uscire con previsioni di pioggia — la cresta bagnata è scivolosa e pericolosa.</li>
+      <li><span class="check-icon ci-bad">✗</span>Partire senza avvisare qualcuno del percorso e dell'orario di rientro previsto.</li>
+    </ul>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ══ 7. NORMATIVE PARCO ══ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">07</span>
+      <h2 class="section-title">Normative del Parco — maggio/giugno 2026</h2>
+    </div>
+
+    <div class="alert a-good">
+      <span class="alert-icon">✅</span>
+      <span><strong>Sentieri 13 e 13A — APERTI.</strong> Nessuna ordinanza di chiusura risulta in vigore su questi due sentieri alla data del 28 maggio 2026.</span>
+    </div>
+    <div class="alert a-danger">
+      <span class="alert-icon">🚫</span>
+      <span><strong>Sentieri 14, 14C, 14D, 14E, 14F — CHIUSI fino al 15 luglio 2026</strong> (Disposizione n.1 del 4 maggio 2026) per protezione del camoscio appenninico nell'area di rilascio sul Monte Sirente. Non coinvolge il Percorso 1.</span>
+    </div>
+    <div class="alert a-warn">
+      <span class="alert-icon">⚠️</span>
+      <span><strong>Via Romana (sentiero 12A)</strong> — verificare con il Comune di Ovindoli la revoca dell'ordinanza di chiusura per frana prima di inserirlo in un anello alternativo.</span>
+    </div>
+
+    <div class="section-head" style="margin-top:1.5rem;margin-bottom:.75rem">
+      <h3 style="font-size:1rem;font-weight:500">Norme comportamentali del Parco</h3>
+    </div>
+    <ul class="check-list">
+      <li><span class="check-icon ci-good">✓</span>Non abbandonare mai il sentiero segnalato.</li>
+      <li><span class="check-icon ci-good">✓</span>Non raccogliere flora, funghi, minerali o qualsiasi elemento naturale.</li>
+      <li><span class="check-icon ci-good">✓</span>Non accendere fuochi. Non fumare — rischio incendio molto alto in estate.</li>
+      <li><span class="check-icon ci-good">✓</span>Non disturbare la fauna — i grifoni nidificano sulle Gole di Celano: mantieni distanza e silenzio sulla cresta.</li>
+      <li><span class="check-icon ci-good">✓</span>Porta via tutti i rifiuti. Lascia la montagna come l'hai trovata.</li>
+      <li><span class="check-icon ci-good">✓</span>Verifica lo stato dei sentieri su <strong>parcosirentevelino.it</strong> prima di ogni uscita.</li>
+    </ul>
+
+    <div style="margin-top:1rem;padding:.9rem 1rem;background:var(--paper-2);border:1px solid var(--border);border-radius:var(--r);font-size:13px">
+      <strong>Contatti Parco Sirente-Velino</strong><br>
+      Viale XXIV Maggio — Rocca di Mezzo (AQ)<br>
+      Tel. <a href="tel:0862916601" style="color:var(--accent)">0862/916601</a> · 
+      <a href="mailto:info@sirentevelino.it" style="color:var(--accent)">info@sirentevelino.it</a><br>
+      Sito: <a href="https://www.parcosirentevelino.it" style="color:var(--accent)" target="_blank">www.parcosirentevelino.it</a>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ══ 8. EMERGENZE ══ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">08</span>
+      <h2 class="section-title">Emergenze e soccorso</h2>
+    </div>
+
+    <div class="sos-box">
+      <div>
+        <div class="sos-num">112</div>
+        <div class="sos-label">Numero Unico Emergenze — Abruzzo<br>Chiedi attivazione CNSAS Soccorso Alpino<br>Gratuito · Funziona anche senza campo del proprio operatore</div>
+      </div>
+      <div class="sos-steps">
+        <strong style="opacity:.95">Cosa dire all'operatore:</strong><br>
+        1. Nome e cognome<br>
+        2. Numero da cui chiami (+ secondo numero)<br>
+        3. Dove sei: sentiero 13A, Monte Etra, Parco Sirente-Velino<br>
+        4. Coordinate GPS se disponibili<br>
+        5. Tipo di incidente e numero di feriti<br>
+        6. Condizioni meteo in loco<br>
+        <br>Resta in linea. Mantieni la calma.
+      </div>
+    </div>
+
+    <div class="cards cards-2" style="margin-top:1rem">
+      <div class="card"><p class="c-label">Ospedale Avezzano</p><p class="c-val" style="font-size:1.1rem">0863/441</p><p class="c-sub">P.O. SS. Filippo e Nicola</p></div>
+      <div class="card"><p class="c-label">CNSAS Abruzzo</p><p class="c-val" style="font-size:1.1rem">112 → CNSAS</p><p class="c-sub">Soccorso Alpino e Speleologico Abruzzo</p></div>
+    </div>
+
+    <div class="alert a-warn" style="margin-top:1rem">
+      <span class="alert-icon">📵</span>
+      <span><strong>Senza campo telefonico:</strong> spostati verso la cresta per migliorare il segnale. Segnale internazionale di soccorso: <strong>6 fischi o segnali luminosi al minuto, pausa di 1 minuto, ripeti</strong>. Non muovere un infortunato a meno di pericolo immediato — ricoprilo con la coperta isotermica.</span>
+    </div>
+
+    <div class="section-head" style="margin-top:1.5rem;margin-bottom:.75rem">
+      <h3 style="font-size:1rem;font-weight:500">Checklist pre-uscita</h3>
+    </div>
+    <ul class="check-list">
+      <li><span class="check-icon ci-good">✓</span><strong>Avvisa qualcuno a Avezzano</strong> — dove vai, che sentiero, orario previsto di rientro.</li>
+      <li><span class="check-icon ci-good">✓</span><strong>Scarica il KMZ offline</strong> su OruxMaps o Maps.me prima di partire.</li>
+      <li><span class="check-icon ci-good">✓</span><strong>Telefono al 100%</strong> di carica + powerbank nello zaino.</li>
+      <li><span class="check-icon ci-good">✓</span><strong>Controlla meteo la mattina stessa</strong> — ARPA Abruzzo o Meteomont CAI.</li>
+      <li><span class="check-icon ci-good">✓</span><strong>Parti entro le 8:30–9:00</strong> per rientrare al parcheggio entro le 15:00.</li>
+      <li><span class="check-icon ci-good">✓</span><strong>Verifica stato sentieri</strong> su parcosirentevelino.it la sera prima.</li>
+      <li><span class="check-icon ci-good">✓</span>Zaino completo secondo lista equipaggiamento (sezione 06).</li>
+      <li><span class="check-icon ci-good">✓</span>Almeno 2 persone — non uscire da soli sul tratto di cresta.</li>
+    </ul>
+  </section>
+
+</div><!-- /page -->
+
+<footer>
+  Guida generata il 28 maggio 2026 · Dati GPS: Parco Naturale Regionale Sirente-Velino (KMZ ufficiale sentieri 13 + 13A) · 
+  Emergenze: 112 · parcosirentevelino.it
+</footer>
+
+<script>
+/* ── ROUTE DATA (sampled GPS from official KMZ) ── */
+const R13 = [[13.541965,42.13697,1316.7],[13.542442,42.137249,1320.4],[13.544245,42.137331,1321.0],[13.545722,42.136526,1324.5],[13.547829,42.135731,1330.9],[13.54929,42.134794,1344.7],[13.550346,42.133718,1355.0],[13.551745,42.132704,1371.0],[13.553311,42.13193,1390.9],[13.554993,42.131181,1413.2],[13.556787,42.130459,1437.4],[13.558609,42.12962,1461.7],[13.560481,42.128638,1484.9],[13.562416,42.12796,1501.3],[13.564488,42.127477,1511.2],[13.566568,42.127119,1519.9],[13.568556,42.126521,1527.7],[13.570498,42.125836,1538.6],[13.572254,42.124957,1553.0],[13.573692,42.123937,1564.5],[13.575012,42.122911,1571.0],[13.576269,42.121895,1580.9],[13.577457,42.120848,1589.2],[13.578501,42.119774,1592.5],[13.579496,42.118715,1596.4],[13.580442,42.117618,1598.5],[13.581309,42.116518,1601.0],[13.58205,42.115401,1601.3],[13.58231,42.114837,1601.8],[13.582553,42.114271,1601.9],[13.58315,42.113178,1601.4],[13.58391,42.111525,1602.2],[13.584545,42.109869,1602.8],[13.585125,42.108227,1603.5],[13.585434,42.107124,1604.4],[13.585654,42.106017,1603.8],[13.585847,42.10434,1603.7],[13.581453,42.125508,1607.5]];
+const R13A = [[13.58142,42.125559,1616.7],[13.580858,42.125159,1612.8],[13.580037,42.124634,1616.0],[13.579107,42.124088,1617.8],[13.578055,42.123436,1628.6],[13.576601,42.122491,1638.2],[13.575069,42.121554,1648.8],[13.573548,42.120775,1660.6],[13.571961,42.119977,1676.5],[13.570157,42.119355,1702.3],[13.568387,42.118861,1731.0],[13.566575,42.118437,1755.3],[13.564728,42.118085,1776.3],[13.562924,42.117721,1795.3],[13.561325,42.117437,1809.8],[13.559719,42.11723,1821.3],[13.558123,42.117099,1825.7],[13.556537,42.116956,1827.4],[13.554957,42.116833,1827.6],[13.553377,42.116722,1827.7],[13.551797,42.116612,1828.0],[13.550216,42.116494,1828.3],[13.548635,42.116374,1828.4],[13.547051,42.116254,1828.4],[13.545468,42.116134,1828.5],[13.543886,42.116014,1828.5],[13.542304,42.115891,1828.5],[13.540724,42.115766,1828.5],[13.585939,42.110176,1828.5]];
+
+const WP = {
+  start:    [13.541965, 42.13697],
+  junction: [13.58142,  42.125574],
+  summit:   [13.585938, 42.110175]
+};
+
+/* ── MAP CANVAS ── */
+function drawMap() {
+  const canvas = document.getElementById('mapCanvas');
+  if (!canvas) return;
+  const W = canvas.offsetWidth, H = 340;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  const allPts = [...R13, ...R13A];
+  const lons = allPts.map(p=>p[0]), lats = allPts.map(p=>p[1]);
+  const pad = 40;
+  const minLon=Math.min(...lons), maxLon=Math.max(...lons);
+  const minLat=Math.min(...lats), maxLat=Math.max(...lats);
+
+  const scaleX = (W - pad*2) / (maxLon - minLon);
+  const scaleY = (H - pad*2) / (maxLat - minLat);
+  const scale  = Math.min(scaleX, scaleY);
+  const offX   = pad + ((W - pad*2) - (maxLon-minLon)*scale) / 2;
+  const offY   = pad + ((H - pad*2) - (maxLat-minLat)*scale) / 2;
+
+  function proj(lon, lat) {
+    return [offX + (lon - minLon) * scale,
+            H - offY - (lat - minLat) * scale];
+  }
+
+  // Background
+  ctx.fillStyle = '#ede9de';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(26,26,24,.07)';
+  ctx.lineWidth = 1;
+  for (let i=0;i<5;i++) {
+    const y = pad + i*(H-pad*2)/4;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W-pad, y); ctx.stroke();
+    const x = pad + i*(W-pad*2)/4;
+    ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, H-pad); ctx.stroke();
+  }
+
+  // Draw R13 (blue)
+  ctx.beginPath();
+  ctx.strokeStyle = '#2563eb';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  R13.forEach((p, i) => {
+    const [x,y] = proj(p[0], p[1]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Draw R13A (orange-red)
+  ctx.beginPath();
+  ctx.strokeStyle = '#c85a2a';
+  ctx.lineWidth = 3;
+  R13A.forEach((p, i) => {
+    const [x,y] = proj(p[0], p[1]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Waypoints
+  function drawWP(lon, lat, color, label, sub) {
+    const [x, y] = proj(lon, lat);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a1a18';
+    ctx.font = '500 12px DM Sans, sans-serif';
+    ctx.fillText(label, x + 10, y - 4);
+    ctx.fillStyle = '#8a8a7e';
+    ctx.font = '11px DM Sans, sans-serif';
+    ctx.fillText(sub, x + 10, y + 8);
+  }
+
+  drawWP(WP.start[0],    WP.start[1],    '#2563eb', 'Partenza', '1.317 m');
+  drawWP(WP.junction[0], WP.junction[1], '#7c3aed', 'Bocchetta', '1.608 m');
+  drawWP(WP.summit[0],   WP.summit[1],   '#c85a2a', 'Monte Etra', '1.827 m');
+
+  // Compass
+  ctx.fillStyle = 'rgba(26,26,24,.4)';
+  ctx.font = '11px DM Sans, sans-serif';
+  ctx.fillText('N ↑', W - 48, 30);
+}
+
+/* ── ELEVATION CANVAS ── */
+function drawElev() {
+  const canvas = document.getElementById('elevCanvas');
+  if (!canvas) return;
+  const W = canvas.offsetWidth, H = 180;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  // Combine elevation data
+  function cumDist(pts) {
+    const d = [0];
+    for (let i=1;i<pts.length;i++) {
+      const dlat=(pts[i][1]-pts[i-1][1])*111000;
+      const dlon=(pts[i][0]-pts[i-1][0])*111000*Math.cos(pts[i][1]*Math.PI/180);
+      d.push(d[d.length-1]+Math.sqrt(dlat*dlat+dlon*dlon));
+    }
+    return d;
+  }
+  const d1=cumDist(R13), d2=cumDist(R13A);
+  const off=d1[d1.length-1];
+  const seg1=R13.map((p,i)=>[d1[i]/1000, p[2]]);
+  const seg2=R13A.map((p,i)=>[(off+d2[i])/1000, p[2]]);
+  const all=[...seg1,...seg2];
+
+  const pad={l:42,r:16,t:12,b:28};
+  const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+  const minAlt=1200, maxAlt=1900;
+  const maxDist=all[all.length-1][0];
+
+  function px(d,a){return[pad.l+d/maxDist*iW, H-pad.b-(a-minAlt)/(maxAlt-minAlt)*iH];}
+
+  // Background
+  ctx.fillStyle='#ede9de'; ctx.fillRect(0,0,W,H);
+
+  // Horizontal grid + labels
+  [1200,1400,1600,1800].forEach(a=>{
+    const y=H-pad.b-(a-minAlt)/(maxAlt-minAlt)*iH;
+    ctx.strokeStyle='rgba(26,26,24,.08)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+iW,y); ctx.stroke();
+    ctx.fillStyle='#8a8a7e'; ctx.font='10px DM Sans,sans-serif';
+    ctx.textAlign='right'; ctx.fillText(a+'m', pad.l-4, y+3);
+  });
+  ctx.textAlign='left';
+
+  // Segment 1 fill + stroke
+  ctx.beginPath();
+  const [x0,y0]=px(seg1[0][0],seg1[0][1]);
+  ctx.moveTo(x0, H-pad.b);
+  ctx.lineTo(x0, y0);
+  seg1.forEach(p=>{ const [x,y]=px(p[0],p[1]); ctx.lineTo(x,y); });
+  const [xl1]=px(seg1[seg1.length-1][0],seg1[seg1.length-1][1]);
+  ctx.lineTo(xl1, H-pad.b);
+  ctx.closePath();
+  ctx.fillStyle='rgba(37,99,235,.1)'; ctx.fill();
+
+  ctx.beginPath();
+  seg1.forEach((p,i)=>{ const [x,y]=px(p[0],p[1]); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.strokeStyle='#2563eb'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
+
+  // Segment 2 fill + stroke
+  ctx.beginPath();
+  const [x0b]=px(seg2[0][0],seg2[0][1]);
+  ctx.moveTo(x0b, H-pad.b); ctx.lineTo(x0b, px(seg2[0][0],seg2[0][1])[1]);
+  seg2.forEach(p=>{ const [x,y]=px(p[0],p[1]); ctx.lineTo(x,y); });
+  const [xl2]=px(seg2[seg2.length-1][0],seg2[seg2.length-1][1]);
+  ctx.lineTo(xl2, H-pad.b);
+  ctx.closePath();
+  ctx.fillStyle='rgba(200,90,42,.1)'; ctx.fill();
+
+  ctx.beginPath();
+  seg2.forEach((p,i)=>{ const [x,y]=px(p[0],p[1]); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.strokeStyle='#c85a2a'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
+
+  // Distance labels
+  [0,2,4,6].forEach(d=>{
+    const x=pad.l+d/maxDist*iW;
+    ctx.fillStyle='#8a8a7e'; ctx.font='10px DM Sans,sans-serif';
+    ctx.textAlign='center'; ctx.fillText(d+' km', x, H-pad.b+14);
+  });
+  ctx.textAlign='left';
+
+  // Waypoint markers
+  [[0,'Partenza\n1317m','#2563eb'],[off/1000,'Bocchetta\n1608m','#7c3aed'],[(off+d2[d2.length-1])/1000,'Vetta\n1827m','#c85a2a']].forEach(([d,lbl,col])=>{
+    const pts=d<off/1000?seg1:seg2;
+    const closest=pts.reduce((a,b)=>Math.abs(b[0]-d)<Math.abs(a[0]-d)?b:a);
+    const [x,y]=px(closest[0],closest[1]);
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2); ctx.fill();
+    lbl.split('\n').forEach((line,i)=>{
+      ctx.fillStyle=i===0?'#1a1a18':'#8a8a7e';
+      ctx.font=(i===0?'500 ':'')+'10px DM Sans,sans-serif';
+      ctx.textAlign='center'; ctx.fillText(line, x, y-10+i*11);
+    });
+  });
+  ctx.textAlign='left';
+}
+
+window.addEventListener('load', ()=>{ drawMap(); drawElev(); });
+window.addEventListener('resize', ()=>{ drawMap(); drawElev(); });
+</script>
+</body>
+</html>
